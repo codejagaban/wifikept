@@ -23,6 +23,19 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .usageToday: return "chart.bar.fill"
         }
     }
+
+    /// Fixed label width so the menu bar item doesn't resize as values tick.
+    var labelWidth: CGFloat? {
+        switch self {
+        case .iconOnly: return nil
+        case .quality: return 38      // "100%"
+        case .rssi: return 34         // "-100"
+        case .linkRate: return 38     // "1200"
+        case .latency: return 48      // "999ms"
+        case .download, .upload: return 66  // "999 KB/s"
+        case .usageToday: return 60   // "99.9 GB"
+        }
+    }
 }
 
 struct MenuBarLabel: View {
@@ -35,6 +48,9 @@ struct MenuBarLabel: View {
             Image(systemName: app.snap.connected ? metric.icon : "wifi.slash")
             if let text = labelText(metric) {
                 Text(text)
+                    .monospacedDigit()
+                    .frame(width: app.snap.connected ? metric.labelWidth : nil,
+                           alignment: .leading)
             }
         }
     }
