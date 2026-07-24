@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage("speedtest.schedule") private var speedSchedule = 0.0
     @AppStorage("budget.gb") private var budgetGB = 0.0
     @AppStorage("updates.auto") private var autoUpdates = true
+    @AppStorage("battery.saver") private var batterySaverEnabled = true
     @ObservedObject private var updater = UpdateChecker.shared
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
@@ -44,6 +45,10 @@ struct SettingsView: View {
                         .foregroundStyle(.red)
                 }
                 Text("Keep WiFiKept running so weekly and monthly usage totals stay complete.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Toggle("Slow down sampling on battery", isOn: $batterySaverEnabled)
+                Text("On battery, live readouts refresh every 5–30 s instead of every 1–10 s. Usage totals stay exact either way.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

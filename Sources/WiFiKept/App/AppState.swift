@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import AppKit
 import Network
 
 struct UsageTotals {
@@ -41,6 +42,8 @@ final class AppState: ObservableObject {
     @Published private(set) var liveTalkers: [(app: String, rxBps: Double, txBps: Double)] = []
     /// True on hotspots/metered links (pauses scheduled speed tests).
     @Published private(set) var pathIsExpensive = false
+    /// True while sampling is slowed down to save battery.
+    @Published private(set) var batterySaver = false
 
     let speed = SpeedTester()
     let insights = InsightEngine()
@@ -150,6 +153,23 @@ final class AppState: ObservableObject {
         flushUsage()
         checkDataBudget()
         maybeRunScheduledSpeedTest()
+        updateSamplingProfile()
+    }
+
+    /// Battery-aware sampling: on battery (and with no WiFiKept UI on
+    /// screen) the fast counters drop from 1 s to 5 s and the nettop
+    /// per-app sampler from 10 s to 30 s. Totals stay exact — the counters
+    /// are cumulative — only live readouts get coarser. Re-checked every 30 s.
+    private func updateSamplingProfile() {
+        let enabled = UserDefaults.standard.object(forKey: "battery.saver") as? Bool ?? true
+        let uiVisible = NSApp.windows.contains { $0.isVisible && $0.frame.height > 100 }
+        let wantSaver = enabled && PowerSource.onBattery && !uiVisible
+        guard wantSaver != batterySaver else { return }
+        batterySaver = wantSaver
+        let fastInterval: Double = wantSaver ? 5 : 1
+        let appInterval: Double = wantSaver ? 30 : 10
+        fastTimer?.schedule(deadline: .now() + fastInterval, repeating: fastInterval)
+        appTimer?.schedule(deadline: .now() + appInterval, repeating: appInterval)
     }
 
     /// "Run automatically every N hours" setting from the Speed section.
