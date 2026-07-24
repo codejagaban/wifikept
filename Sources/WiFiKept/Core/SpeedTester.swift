@@ -34,13 +34,13 @@ final class SpeedTester: ObservableObject {
 
     /// Tuning: 4 parallel streams, ~6 s each way, ignore the first second
     /// (slow-start) when computing the final figure.
-    private static let streamCount = 4
-    private static let boxSeconds: Double = 6
-    private static let rampSeconds: Double = 1
+    private nonisolated static let streamCount = 4
+    private nonisolated static let boxSeconds: Double = 6
+    private nonisolated static let rampSeconds: Double = 1
     // Cloudflare rejects __down requests of 100 MB+ with a 403; 90 MB is the
     // biggest size that passes, and 4×90 MB outlasts the 6 s box on most links.
-    private static let downloadBytesPerStream = 90_000_000
-    private static let uploadBytesPerStream = 25_000_000
+    private nonisolated static let downloadBytesPerStream = 90_000_000
+    private nonisolated static let uploadBytesPerStream = 25_000_000
 
     var isRunning: Bool { phase != .idle && phase != .done }
 

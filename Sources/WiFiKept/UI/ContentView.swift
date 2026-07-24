@@ -6,6 +6,7 @@ enum MainTab: String, CaseIterable, Identifiable {
     case speed = "Speed"
     case trends = "Trends"
     case usage = "Usage"
+    case ask = "Ask"
     case details = "Details"
     var id: String { rawValue }
 }
@@ -17,11 +18,16 @@ struct MainWindow: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            ScrollView {
-                content
-                    .padding(20)
-                    .frame(maxWidth: 1100)
-                    .frame(maxWidth: .infinity)
+            if tab == .ask {
+                // The chat lays out its own scroll region and pinned input bar.
+                AskView()
+            } else {
+                ScrollView {
+                    content
+                        .padding(20)
+                        .frame(maxWidth: 1100)
+                        .frame(maxWidth: .infinity)
+                }
             }
         }
         .background(Theme.windowBG)
@@ -83,6 +89,7 @@ struct MainWindow: View {
         case .speed: SpeedView()
         case .trends: TrendsView()
         case .usage: UsageView()
+        case .ask: AskView()
         case .details: DetailsView()
         }
     }

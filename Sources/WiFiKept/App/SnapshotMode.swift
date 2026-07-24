@@ -58,6 +58,7 @@ private struct SnapshotTabView: View {
             case .speed: SpeedView()
             case .trends: TrendsView()
             case .usage: UsageView()
+            case .ask: AskView().frame(height: 700)
             case .details: DetailsView()
             }
         }

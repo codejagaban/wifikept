@@ -39,6 +39,7 @@ final class AppState: ObservableObject {
 
     let speed = SpeedTester()
     let insights = InsightEngine()
+    let ask = AskEngine()
     let db: Database
 
     // Only touched from init (main) and the serial fast-timer queue.
@@ -236,6 +237,35 @@ final class AppState: ObservableObject {
             buckets[start] = (cur.0 + row.rx, cur.1 + row.tx)
         }
         return buckets.keys.sorted().map { UsageBucket(date: $0, rx: buckets[$0]!.0, tx: buckets[$0]!.1) }
+    }
+
+    /// Everything the Ask tab's model gets to see, refreshed per question.
+    func askContext() -> String {
+        var lines: [String] = []
+        let s = snap
+        if s.connected {
+            lines.append("Network: \(s.ssid ?? "unknown (Location permission not granted)") — RSSI \(s.rssi) dBm (\(s.qualityRating), \(s.qualityPercent)%), noise \(s.noise) dBm, SNR \(s.snr) dB.")
+            lines.append("Link rate \(Int(s.txRate)) Mbps, \(s.standard) (\(s.standardDetail)), channel \(s.channel) on \(s.bandLabel) at \(s.widthMHz) MHz, security \(s.security), TX power \(s.txPower) mW.")
+            lines.append("IPv4 \(s.ipv4 ?? "—"), gateway \(s.gateway ?? "—"), interface \(s.interfaceName).")
+        } else {
+            lines.append("Not connected to Wi-Fi right now.")
+        }
+        if let l = latencyMs { lines.append("Current latency: \(Fmt.ms(l)).") }
+        lines.append("Live throughput: \(Fmt.bytesPerSec(rxBps)) down, \(Fmt.bytesPerSec(txBps)) up.")
+        if let r = speed.result {
+            lines.append(String(format: "Last speed test (%@): %.0f Mbps down, %.0f Mbps up, latency %@, DNS %@.",
+                                Fmt.ago(r.date), r.downloadMbps, r.uploadMbps,
+                                r.latencyMs.map { Fmt.ms($0) } ?? "n/a",
+                                r.dnsMs.map { Fmt.ms($0) } ?? "n/a"))
+        }
+        let t = usageTotals()
+        lines.append("Data usage — today \(Fmt.bytes(t.today.rx)) down / \(Fmt.bytes(t.today.tx)) up, this week \(Fmt.bytes(t.week.rx)) down / \(Fmt.bytes(t.week.tx)) up, this month \(Fmt.bytes(t.month.rx + t.month.tx)) total, all time \(Fmt.bytes(t.allTime.rx + t.allTime.tx)) total.")
+        let recent = trendRows(hours: 1)
+        if recent.count > 2 {
+            let rssis = recent.map(\.rssi)
+            lines.append("Past hour: signal averaged \(rssis.reduce(0, +) / rssis.count) dBm (min \(rssis.min() ?? 0), max \(rssis.max() ?? 0)) over \(recent.count) samples.")
+        }
+        return lines.joined(separator: "\n")
     }
 
     func trendRows(hours: Double) -> [TrendRow] {
