@@ -109,6 +109,25 @@ struct MenuBarView: View {
                 cell(icon: "calendar", color: Theme.indigo, title: "This Week",
                      value: weekTotal)
             }
+            if let top = app.liveTalkers.first, top.rxBps + top.txBps >= 200 {
+                HStack(spacing: 8) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Theme.orange)
+                    Text(top.app)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(1)
+                    Spacer()
+                    Text("↓ \(Fmt.bytesPerSec(top.rxBps))  ↑ \(Fmt.bytesPerSec(top.txBps))")
+                        .font(.mono(11, .medium))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .frame(maxWidth: .infinity)
+                .background(glassShape(RoundedRectangle(cornerRadius: 12, style: .continuous)))
+            }
             buttonsRow
         }
         .padding(12)

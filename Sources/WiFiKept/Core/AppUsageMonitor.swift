@@ -21,6 +21,8 @@ final class AppUsageMonitor {
 
     private let lock = NSLock()
     private var pending: [String: (rx: Int64, tx: Int64)] = [:]
+    private var lastSampleTime: Date?
+    private var currentRates: [(app: String, rxBps: Double, txBps: Double)] = []
 
     /// Friendly names for common system daemons that move real traffic.
     private static let daemonAliases: [String: String] = [
@@ -76,8 +78,16 @@ final class AppUsageMonitor {
         firstSample = false
         nameCache = nameCache.filter { pid, _ in current.contains { $0.key.pid == pid } }
 
-        guard !deltas.isEmpty else { return }
+        // Live rates over this sampling interval, for the "top talkers" view.
+        let now = Date()
+        let interval = max(1, lastSampleTime.map { now.timeIntervalSince($0) } ?? 10)
+        lastSampleTime = now
+        let rates = deltas
+            .map { (app: $0.key, rxBps: Double($0.value.rx) / interval, txBps: Double($0.value.tx) / interval) }
+            .sorted { $0.rxBps + $0.txBps > $1.rxBps + $1.txBps }
+
         lock.lock()
+        currentRates = Array(rates.prefix(8))
         for (app, d) in deltas {
             var slot = pending[app] ?? (0, 0)
             slot.rx += d.rx
@@ -85,6 +95,13 @@ final class AppUsageMonitor {
             pending[app] = slot
         }
         lock.unlock()
+    }
+
+    /// Most recent per-app transfer rates, busiest first.
+    func topTalkers() -> [(app: String, rxBps: Double, txBps: Double)] {
+        lock.lock()
+        defer { lock.unlock() }
+        return currentRates
     }
 
     /// Hand over accumulated deltas (called by the flush cycle).

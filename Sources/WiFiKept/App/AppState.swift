@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Network
 
 struct UsageTotals {
     var today: (rx: Int64, tx: Int64) = (0, 0)
@@ -36,6 +37,10 @@ final class AppState: ObservableObject {
     @Published private(set) var liveHistory: [(date: Date, rx: Double, tx: Double)] = []
     /// Bumped whenever a usage flush lands so views re-query the DB.
     @Published private(set) var usageStamp = 0
+    /// Most recent per-app transfer rates (busiest first), ~10 s cadence.
+    @Published private(set) var liveTalkers: [(app: String, rxBps: Double, txBps: Double)] = []
+    /// True on hotspots/metered links (pauses scheduled speed tests).
+    @Published private(set) var pathIsExpensive = false
 
     let speed = SpeedTester()
     let insights = InsightEngine()
@@ -48,6 +53,7 @@ final class AppState: ObservableObject {
     // Sampled on its own serial background timer.
     private nonisolated(unsafe) let appMonitor = AppUsageMonitor()
     private var appTimer: DispatchSourceTimer?
+    private let pathMonitor = NWPathMonitor()
     private var fastTimer: DispatchSourceTimer?
     private var slowTimer: DispatchSourceTimer?
 
@@ -80,6 +86,11 @@ final class AppState: ObservableObject {
 
         startTimers()
         Task { await self.measureLatency() }
+
+        pathMonitor.pathUpdateHandler = { [weak self] path in
+            Task { @MainActor in self?.pathIsExpensive = path.isExpensive }
+        }
+        pathMonitor.start(queue: .global(qos: .utility))
     }
 
     private func startTimers() {
@@ -102,7 +113,12 @@ final class AppState: ObservableObject {
         // 10 s: per-app attribution sample (spawns nettop; keep off-main).
         let apps = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
         apps.schedule(deadline: .now() + 5, repeating: 10)
-        apps.setEventHandler { [weak self] in self?.appMonitor.sample() }
+        apps.setEventHandler { [weak self] in
+            guard let self else { return }
+            self.appMonitor.sample()
+            let talkers = self.appMonitor.topTalkers()
+            Task { @MainActor in self.liveTalkers = talkers }
+        }
         apps.resume()
         appTimer = apps
     }
@@ -139,7 +155,7 @@ final class AppState: ObservableObject {
     /// "Run automatically every N hours" setting from the Speed section.
     private func maybeRunScheduledSpeedTest() {
         let hours = UserDefaults.standard.double(forKey: "speedtest.schedule")
-        guard hours > 0, snap.connected, !speed.isRunning else { return }
+        guard hours > 0, snap.connected, !speed.isRunning, !pathIsExpensive else { return }
         let lastRun = speed.result?.date ?? .distantPast
         if Date().timeIntervalSince(lastRun) >= hours * 3600 {
             Task { await self.speed.run() }
@@ -165,6 +181,29 @@ final class AppState: ObservableObject {
             Notifier.post(title: "80% of data budget used",
                           body: "\(Fmt.bytes(Int64(used))) of your \(Int(gb)) GB monthly budget is gone.")
             UserDefaults.standard.set(80, forKey: notifiedKey)
+        }
+    }
+
+    /// Label usage rows with where the data moved.
+    private var currentNetworkLabel: String {
+        if snap.connected, let ssid = snap.ssid { return ssid }
+        return snap.connected ? "Wi-Fi" : "Wired / Other"
+    }
+
+    /// Usage grouped by network for the selected range.
+    func networkTotals(range: UsageRange, limit: Int = 6) -> [(network: String?, rx: Int64, tx: Int64)] {
+        db.networkTotals(from: usageRangeStart(range), limit: limit)
+    }
+
+    private func usageRangeStart(_ range: UsageRange) -> Date? {
+        let cal = Calendar.current
+        let now = Date()
+        switch range {
+        case .day: return cal.startOfDay(for: now)
+        case .week: return cal.startOfDay(for: now.addingTimeInterval(-6 * 86_400))
+        case .month: return cal.startOfDay(for: now.addingTimeInterval(-29 * 86_400))
+        case .year: return cal.startOfDay(for: now.addingTimeInterval(-364 * 86_400))
+        case .all: return nil
         }
     }
 
@@ -215,7 +254,8 @@ final class AppState: ObservableObject {
 
     func flushUsage() {
         if pendingRx > 0 || pendingTx > 0 {
-            db.addUsage(ts: Date(), rx: Int64(pendingRx), tx: Int64(pendingTx))
+            db.addUsage(ts: Date(), rx: Int64(pendingRx), tx: Int64(pendingTx),
+                        network: currentNetworkLabel)
             pendingRx = 0
             pendingTx = 0
         }

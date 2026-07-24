@@ -60,6 +60,8 @@ final class Database {
                     day TEXT, app TEXT, rx INTEGER NOT NULL, tx INTEGER NOT NULL,
                     PRIMARY KEY(day, app))
                 """)
+            // Migration: per-network attribution (no-op once the column exists).
+            exec("ALTER TABLE usage ADD COLUMN network TEXT")
         }
     }
 
@@ -71,19 +73,46 @@ final class Database {
 
     // MARK: - Usage
 
-    func addUsage(ts: Date, rx: Int64, tx: Int64) {
+    func addUsage(ts: Date, rx: Int64, tx: Int64, network: String? = nil) {
         guard rx > 0 || tx > 0 else { return }
         q.sync {
             var stmt: OpaquePointer?
             sqlite3_prepare_v2(db, """
-                INSERT INTO usage(ts, rx, tx) VALUES(?,?,?)
+                INSERT INTO usage(ts, rx, tx, network) VALUES(?,?,?,?)
                 ON CONFLICT(ts) DO UPDATE SET rx = rx + excluded.rx, tx = tx + excluded.tx
                 """, -1, &stmt, nil)
             sqlite3_bind_int64(stmt, 1, Int64(ts.timeIntervalSince1970))
             sqlite3_bind_int64(stmt, 2, rx)
             sqlite3_bind_int64(stmt, 3, tx)
+            if let network {
+                sqlite3_bind_text(stmt, 4, network, -1, SQLITE_TRANSIENT)
+            } else {
+                sqlite3_bind_null(stmt, 4)
+            }
             sqlite3_step(stmt)
             sqlite3_finalize(stmt)
+        }
+    }
+
+    /// Usage grouped by network label; nil = recorded without attribution
+    /// (rows credited for time the app was closed, or pre-migration data).
+    func networkTotals(from: Date?, limit: Int) -> [(network: String?, rx: Int64, tx: Int64)] {
+        q.sync {
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, """
+                SELECT network, COALESCE(SUM(rx),0), COALESCE(SUM(tx),0) FROM usage
+                WHERE ts >= ? GROUP BY network ORDER BY SUM(rx) + SUM(tx) DESC LIMIT ?
+                """, -1, &stmt, nil)
+            sqlite3_bind_int64(stmt, 1, Int64(from?.timeIntervalSince1970 ?? 0))
+            sqlite3_bind_int(stmt, 2, Int32(limit))
+            var rows: [(String?, Int64, Int64)] = []
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                let network = sqlite3_column_type(stmt, 0) == SQLITE_NULL
+                    ? nil : String(cString: sqlite3_column_text(stmt, 0))
+                rows.append((network, sqlite3_column_int64(stmt, 1), sqlite3_column_int64(stmt, 2)))
+            }
+            sqlite3_finalize(stmt)
+            return rows
         }
     }
 

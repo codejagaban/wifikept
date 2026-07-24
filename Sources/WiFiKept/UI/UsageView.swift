@@ -27,6 +27,7 @@ struct UsageView: View {
     @State private var totals = UsageTotals()
     @State private var series: [UsageBucket] = []
     @State private var topApps: [(app: String, rx: Int64, tx: Int64)] = []
+    @State private var networks: [(network: String?, rx: Int64, tx: Int64)] = []
     @State private var hoverDate: Date?
 
     private var chartStyle: UsageChartStyle {
@@ -40,7 +41,9 @@ struct UsageView: View {
                 budgetBar
             }
             chartCard
+            liveTalkersCard
             topAppsCard
+            networksCard
             liveRow
             InsightBox(
                 title: "Usage Insight",
@@ -62,6 +65,7 @@ struct UsageView: View {
         totals = app.usageTotals()
         series = app.usageSeries(range: range)
         topApps = app.topApps(range: range)
+        networks = app.networkTotals(range: range)
     }
 
     // MARK: - Totals
@@ -328,6 +332,119 @@ struct UsageView: View {
         case .hour: return date.formatted(date: .omitted, time: .shortened)
         case .day: return date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
         default: return date.formatted(.dateTime.month(.wide).year())
+        }
+    }
+
+    // MARK: - Live talkers
+
+    private var liveTalkersCard: some View {
+        let talkers = app.liveTalkers.filter { $0.rxBps + $0.txBps >= 200 }.prefix(5)
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("USING DATA RIGHT NOW")
+                    .font(.system(size: 11, weight: .semibold))
+                    .kerning(1.1)
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer()
+                Circle().fill(Theme.green).frame(width: 7, height: 7)
+                Text("LIVE")
+                    .font(.system(size: 10, weight: .bold))
+                    .kerning(0.5)
+                    .foregroundStyle(Theme.textTertiary)
+            }
+            if talkers.isEmpty {
+                Text("Quiet right now — nothing is moving meaningful data.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.textSecondary)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(Array(talkers), id: \.app) { t in
+                        HStack(spacing: 12) {
+                            appIcon(for: t.app)
+                            Text(t.app)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Theme.textPrimary)
+                                .lineLimit(1)
+                            Spacer()
+                            Text("↓ \(Fmt.bytesPerSec(t.rxBps))")
+                                .font(.mono(12, .medium))
+                                .foregroundStyle(Theme.blue)
+                            Text("↑ \(Fmt.bytesPerSec(t.txBps))")
+                                .font(.mono(12, .medium))
+                                .foregroundStyle(Theme.green)
+                        }
+                    }
+                }
+                .animation(.smooth(duration: 0.4), value: talkers.map(\.app))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
+    }
+
+    // MARK: - By network
+
+    private var networksCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("BY NETWORK")
+                    .font(.system(size: 11, weight: .semibold))
+                    .kerning(1.1)
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer()
+                Text(range.rawValue)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.textTertiary)
+            }
+            if networks.isEmpty {
+                Text("Network attribution starts with the next minute of tracking.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.textSecondary)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(Array(networks.enumerated()), id: \.offset) { _, entry in
+                        networkRow(entry: entry,
+                                   peak: networks.first.map { $0.rx + $0.tx } ?? 1)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
+    }
+
+    private func networkRow(entry: (network: String?, rx: Int64, tx: Int64), peak: Int64) -> some View {
+        let total = entry.rx + entry.tx
+        let share = peak > 0 ? Double(total) / Double(peak) : 0
+        let name = entry.network ?? "Unattributed (earlier or app closed)"
+        return HStack(spacing: 12) {
+            Image(systemName: entry.network == nil ? "clock.arrow.circlepath" : "wifi")
+                .font(.system(size: 13))
+                .foregroundStyle(entry.network == nil ? Theme.textTertiary : Theme.teal)
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(name)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(entry.network == nil ? Theme.textSecondary : Theme.textPrimary)
+                    .lineLimit(1)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Theme.track)
+                        Capsule().fill(Theme.teal)
+                            .frame(width: max(3, geo.size.width * share))
+                    }
+                }
+                .frame(height: 3)
+            }
+            Spacer(minLength: 16)
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(Fmt.bytes(total))
+                    .font(.display(14, .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Text("↓ \(Fmt.bytes(entry.rx))  ↑ \(Fmt.bytes(entry.tx))")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Theme.textTertiary)
+            }
         }
     }
 
