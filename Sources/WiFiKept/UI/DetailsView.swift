@@ -15,7 +15,7 @@ struct DetailsView: View {
                              title: "IPv4 Address", value: snap.ipv4)
                     CopyCard(icon: "6.circle.fill", iconColor: Theme.teal,
                              title: "IPv6 Address", value: snap.ipv6)
-                    CopyCard(icon: "antenna.radiowaves.left.and.right.circle.fill", iconColor: Theme.textSecondary,
+                    CopyCard(icon: "antenna.radiowaves.left.and.right.circle.fill", iconColor: Theme.green,
                              title: "BSSID", value: snap.bssid,
                              trailing: snap.bssid == nil ? "needs Location" : "")
                 }
@@ -37,7 +37,7 @@ struct DetailsView: View {
             VStack(spacing: 12) {
                 SectionLabel(text: "Radio")
                 LazyVGrid(columns: cols, spacing: 14) {
-                    CopyCard(icon: "lock.shield.fill", iconColor: Theme.textSecondary,
+                    CopyCard(icon: "lock.shield.fill", iconColor: Theme.green,
                              title: "Security", value: snap.security)
                     CopyCard(icon: "antenna.radiowaves.left.and.right", iconColor: Theme.teal,
                              title: "Band", value: snap.bandLabel)

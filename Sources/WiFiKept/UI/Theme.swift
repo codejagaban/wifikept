@@ -29,15 +29,8 @@ enum Theme {
         dyn(light: NSColor(hex: light), dark: NSColor(hex: dark))
     }
 
-    // Ink: the single data/interaction color — near-black on light,
-    // near-white on dark. The minimal palette's workhorse.
-    static let ink = dyn(light: 0x14161B, dark: 0xF2F3F5)
-    static let inkContrast = dyn(light: 0xFFFFFF, dark: 0x14161B)
-    /// Secondary chart series (upload, noise) — quiet gray next to ink.
-    static let seriesSecondary = dyn(light: 0x9AA0AA, dark: 0x6C7280)
-
     // Surfaces
-    static let windowBG = dyn(light: 0xEDEEF1, dark: 0x121419)
+    static let windowBG = dyn(light: 0xE9EDF3, dark: 0x121419)
     static let headerBG = dyn(light: 0xE7E9EE, dark: 0x0D0F13)
     static let card = dyn(light: 0xFFFFFF, dark: 0x1C202A)
     static let cardElevated = dyn(light: 0xFFFFFF, dark: 0x222735)
@@ -47,12 +40,12 @@ enum Theme {
     // Glass: backdrop color orbs, edge highlights, sheen and card shadows.
     // The orbs are deliberately saturated — frosted cards read as glass only
     // when there's visible color behind them to blur.
-    static let orbA = dyn(light: NSColor.white.withAlphaComponent(0.90),
-                          dark: NSColor(hex: 0x272B34, alpha: 0.90))
-    static let orbB = dyn(light: NSColor(hex: 0xD6DBE3, alpha: 0.70),
-                          dark: NSColor(hex: 0x191C22, alpha: 0.85))
-    static let orbC = dyn(light: NSColor(hex: 0xF2F3F6, alpha: 0.65),
-                          dark: NSColor(hex: 0x2D3139, alpha: 0.70))
+    static let orbA = dyn(light: NSColor(hex: 0x86AEFF, alpha: 0.60),
+                          dark: NSColor(hex: 0x2E4070, alpha: 0.80))
+    static let orbB = dyn(light: NSColor(hex: 0x7EDCD0, alpha: 0.55),
+                          dark: NSColor(hex: 0x1D5B60, alpha: 0.65))
+    static let orbC = dyn(light: NSColor(hex: 0xC9B8F5, alpha: 0.50),
+                          dark: NSColor(hex: 0x45336E, alpha: 0.60))
     static let glassEdgeTop = dyn(light: NSColor.white.withAlphaComponent(0.95),
                                   dark: NSColor.white.withAlphaComponent(0.35))
     static let glassEdgeBottom = dyn(light: NSColor.white.withAlphaComponent(0.30),
@@ -79,20 +72,16 @@ enum Theme {
     static let textSecondary = dyn(light: 0x5C6572, dark: 0x9AA3B2)
     static let textTertiary = dyn(light: 0x8B93A1, dark: 0x687080)
 
-    // Status colors — the ONLY real color in the app, reserved for meaning
-    // (signal quality, warnings). Slightly muted to sit in the minimal palette.
-    static let green = dyn(light: 0x2FA455, dark: 0x46BE6B)
-    static let yellow = dyn(light: 0xC29A2A, dark: 0xD4B04A)
-    static let red = dyn(light: 0xDE4A40, dark: 0xE8625A)
-
-    // Legacy accent names, retained so nothing breaks — all resolve to
-    // neutral ink/gray in the minimal palette.
-    static let blue = ink
-    static let orange = ink
-    static let purple = ink
-    static let pink = ink
-    static let teal = ink
-    static let indigo = ink
+    // Accents — Apple's system light/dark pairs so they read on both surfaces
+    static let green = dyn(light: 0x28CD41, dark: 0x32D74B)
+    static let blue = dyn(light: 0x007AFF, dark: 0x0A84FF)
+    static let orange = dyn(light: 0xFF9500, dark: 0xFF9F0A)
+    static let purple = dyn(light: 0xAF52DE, dark: 0xBF5AF2)
+    static let pink = dyn(light: 0xFF2D55, dark: 0xFF375F)
+    static let teal = dyn(light: 0x30B0C7, dark: 0x40C8E0)
+    static let yellow = dyn(light: 0xF5B800, dark: 0xFFD60A)
+    static let red = dyn(light: 0xFF3B30, dark: 0xFF453A)
+    static let indigo = dyn(light: 0x5856D6, dark: 0x5E5CE6)
 }
 
 /// User-selectable appearance, stored in AppStorage("appearance").

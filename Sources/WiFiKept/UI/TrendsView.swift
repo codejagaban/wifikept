@@ -99,10 +99,10 @@ struct TrendsView: View {
                 } label: {
                     Text(m.rawValue)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(metric == m ? Theme.inkContrast : Theme.textSecondary)
+                        .foregroundStyle(metric == m ? .white : Theme.textSecondary)
                         .padding(.horizontal, 13)
                         .padding(.vertical, 7)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(metric == m ? Theme.ink : Color.clear))
+                        .background(RoundedRectangle(cornerRadius: 8).fill(metric == m ? Theme.blue : Color.clear))
                 }
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity)
@@ -121,7 +121,7 @@ struct TrendsView: View {
             lineChart(values: rows.map { ($0.ts, Double($0.rssi)) }, color: Theme.blue,
                       unit: "dBm", domain: -100...0)
         case .link:
-            lineChart(values: rows.map { ($0.ts, $0.txRate) }, color: Theme.ink, unit: "Mbps", domain: nil)
+            lineChart(values: rows.map { ($0.ts, $0.txRate) }, color: Theme.green, unit: "Mbps", domain: nil)
         case .latency:
             lineChart(values: rows.compactMap { r in r.latency.map { (r.ts, $0) } },
                       color: Theme.orange, unit: "ms", domain: nil)
@@ -191,12 +191,12 @@ struct TrendsView: View {
                     .interpolationMethod(.monotone)
                 LineMark(x: .value("Time", r.ts), y: .value("Mbps", r.txBps * 8 / 1_000_000),
                          series: .value("Series", "Up"))
-                    .foregroundStyle(Theme.seriesSecondary)
+                    .foregroundStyle(Theme.green)
                     .interpolationMethod(.monotone)
             }
         }
         .modifier(TrendChartStyle(domain: nil))
-        .chartForegroundStyleScale(["Down": Theme.ink, "Up": Theme.seriesSecondary])
+        .chartForegroundStyleScale(["Down": Theme.blue, "Up": Theme.green])
     }
 
     private var channelChart: some View {
@@ -252,7 +252,7 @@ struct TrendsView: View {
         case .link:
             let rates = rows.map(\.txRate)
             return [
-                ("Avg Link", "\(Int(rates.reduce(0, +) / Double(rates.count))) Mbps", Theme.ink),
+                ("Avg Link", "\(Int(rates.reduce(0, +) / Double(rates.count))) Mbps", Theme.green),
                 ("Min", "\(Int(rates.min() ?? 0)) Mbps", Theme.orange),
                 ("Max", "\(Int(rates.max() ?? 0)) Mbps", Theme.blue),
             ]
@@ -261,17 +261,17 @@ struct TrendsView: View {
             guard !lats.isEmpty else { return [("No latency samples yet", "—", Theme.textSecondary)] }
             return [
                 ("Avg Latency", Fmt.ms(lats.reduce(0, +) / Double(lats.count)), Theme.orange),
-                ("Best", Fmt.ms(lats.min() ?? 0), Theme.ink),
-                ("Worst", Fmt.ms(lats.max() ?? 0), Theme.ink),
+                ("Best", Fmt.ms(lats.min() ?? 0), Theme.green),
+                ("Worst", Fmt.ms(lats.max() ?? 0), Theme.red),
             ]
         case .throughput:
             let rx = rows.map(\.rxBps)
             let tx = rows.map(\.txBps)
             return [
                 ("Avg Down", Fmt.bitsPerSec(rx.reduce(0, +) / Double(rx.count) * 8), Theme.blue),
-                ("Avg Up", Fmt.bitsPerSec(tx.reduce(0, +) / Double(tx.count) * 8), Theme.seriesSecondary),
+                ("Avg Up", Fmt.bitsPerSec(tx.reduce(0, +) / Double(tx.count) * 8), Theme.green),
                 ("Peak Down", Fmt.bitsPerSec((rx.max() ?? 0) * 8), Theme.blue),
-                ("Peak Up", Fmt.bitsPerSec((tx.max() ?? 0) * 8), Theme.seriesSecondary),
+                ("Peak Up", Fmt.bitsPerSec((tx.max() ?? 0) * 8), Theme.green),
             ]
         case .channel:
             let channels = Set(rows.map(\.channel))

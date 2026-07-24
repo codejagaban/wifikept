@@ -259,11 +259,11 @@ struct PillPicker<T: Hashable>: View {
                 } label: {
                     Text(option.1)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(selection == option.0 ? Theme.inkContrast : Theme.textSecondary)
+                        .foregroundStyle(selection == option.0 ? Color.white : Theme.textSecondary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(
-                            Capsule().fill(selection == option.0 ? Theme.ink : Color.clear)
+                            Capsule().fill(selection == option.0 ? Theme.blue : Color.clear)
                         )
                 }
                 .buttonStyle(.plain)

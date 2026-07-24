@@ -112,11 +112,11 @@ struct AskView: View {
                     .fill(.ultraThinMaterial)
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(msg.role == .user ? Theme.ink.opacity(0.10) : Color.clear)
+                            .fill(msg.role == .user ? Theme.blue.opacity(0.22) : Color.clear)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(msg.role == .user ? Theme.ink.opacity(0.25) : Theme.stroke,
+                            .strokeBorder(msg.role == .user ? Theme.blue.opacity(0.35) : Theme.stroke,
                                           lineWidth: 1)
                     )
             )
@@ -154,9 +154,9 @@ struct AskView: View {
             } label: {
                 Image(systemName: "arrow.up")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.inkContrast)
+                    .foregroundStyle(.white)
                     .frame(width: 34, height: 34)
-                    .background(Circle().fill(canSend ? Theme.ink : Theme.textTertiary.opacity(0.4)))
+                    .background(Circle().fill(canSend ? Theme.blue : Theme.textTertiary.opacity(0.4)))
             }
             .buttonStyle(.plain)
             .disabled(!canSend)

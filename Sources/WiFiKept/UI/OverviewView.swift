@@ -79,7 +79,7 @@ struct OverviewView: View {
                     Label(Fmt.bytesPerSec(app.rxBps), systemImage: "arrow.down")
                         .foregroundStyle(Theme.blue)
                     Label(Fmt.bytesPerSec(app.txBps), systemImage: "arrow.up")
-                        .foregroundStyle(Theme.seriesSecondary)
+                        .foregroundStyle(Theme.green)
                 }
                 .font(.system(size: 13, weight: .semibold))
             }
@@ -99,7 +99,7 @@ struct OverviewView: View {
                     LineMark(x: .value("Time", point.date),
                              y: .value("B/s", point.tx),
                              series: .value("Series", "Up"))
-                        .foregroundStyle(Theme.seriesSecondary)
+                        .foregroundStyle(Theme.green)
                         .interpolationMethod(.monotone)
                 }
             }
@@ -123,7 +123,7 @@ struct OverviewView: View {
 
     private var quickGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: 4), spacing: 14) {
-            MetricCard(icon: "gauge.with.needle", iconColor: Theme.textSecondary,
+            MetricCard(icon: "gauge.with.needle", iconColor: Theme.green,
                        title: "Link Rate", value: snap.txRate > 0 ? "\(Int(snap.txRate)) Mbps" : "—")
             MetricCard(icon: "clock.fill", iconColor: Theme.orange,
                        title: "Latency", value: app.latencyMs.map { Fmt.ms($0) } ?? "—")
