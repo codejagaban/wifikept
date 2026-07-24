@@ -84,6 +84,7 @@ struct MainWindow: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .focusEffectDisabled()
             }
         }
         .padding(3)

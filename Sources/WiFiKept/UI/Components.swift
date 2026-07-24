@@ -218,6 +218,7 @@ struct PillPicker<T: Hashable>: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .focusEffectDisabled()
             }
         }
         .padding(3)

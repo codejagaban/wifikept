@@ -108,6 +108,7 @@ struct TrendsView: View {
                         .background(RoundedRectangle(cornerRadius: 8).fill(metric == m ? Theme.blue : Color.clear))
                 }
                 .buttonStyle(.plain)
+                .focusEffectDisabled()
                 .frame(maxWidth: .infinity)
             }
         }

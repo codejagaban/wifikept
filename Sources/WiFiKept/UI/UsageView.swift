@@ -185,6 +185,7 @@ struct UsageView: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .focusEffectDisabled()
                 .help(style.help)
             }
         }
