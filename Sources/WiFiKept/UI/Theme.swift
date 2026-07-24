@@ -30,10 +30,10 @@ enum Theme {
     }
 
     // Surfaces
-    static let windowBG = dyn(light: 0xE9EDF3, dark: 0x121419)
-    static let headerBG = dyn(light: 0xE7E9EE, dark: 0x0D0F13)
-    static let card = dyn(light: 0xFFFFFF, dark: 0x1C202A)
-    static let cardElevated = dyn(light: 0xFFFFFF, dark: 0x222735)
+    static let windowBG = dyn(light: 0xE9EDF3, dark: 0x0B0B0C)
+    static let headerBG = dyn(light: 0xE7E9EE, dark: 0x050506)
+    static let card = dyn(light: 0xFFFFFF, dark: 0x161618)
+    static let cardElevated = dyn(light: 0xFFFFFF, dark: 0x1D1D20)
     static let stroke = dyn(light: NSColor.black.withAlphaComponent(0.08),
                             dark: NSColor.white.withAlphaComponent(0.06))
 
@@ -68,9 +68,9 @@ enum Theme {
                             dark: NSColor.white.withAlphaComponent(0.30))
 
     // Text
-    static let textPrimary = dyn(light: 0x1A1D24, dark: 0xF2F4F8)
-    static let textSecondary = dyn(light: 0x5C6572, dark: 0x9AA3B2)
-    static let textTertiary = dyn(light: 0x8B93A1, dark: 0x687080)
+    static let textPrimary = dyn(light: 0x1A1D24, dark: 0xF5F5F6)
+    static let textSecondary = dyn(light: 0x5C6572, dark: 0x9FA1A6)
+    static let textTertiary = dyn(light: 0x8B93A1, dark: 0x6A6C71)
 
     // Accents — Apple's system light/dark pairs so they read on both surfaces
     static let green = dyn(light: 0x28CD41, dark: 0x32D74B)
