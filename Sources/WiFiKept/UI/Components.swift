@@ -45,7 +45,7 @@ struct MetricCard: View {
             }
             HStack(alignment: .lastTextBaseline) {
                 Text(value)
-                    .font(.system(size: 22, weight: .bold, design: monospacedValue ? .monospaced : .rounded))
+                    .font(.system(size: 22, weight: .bold, design: monospacedValue ? .monospaced : .default))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -107,7 +107,7 @@ struct MeterRow: View {
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Text(valueText)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
             }
             GeometryReader { geo in

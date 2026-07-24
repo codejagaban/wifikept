@@ -95,7 +95,7 @@ struct SpeedView: View {
                         .frame(width: 24, height: 24)
                         .background(Circle().fill(color))
                     Text(mbps.map { $0 >= 100 ? String(format: "%.0f", $0) : String(format: "%.1f", $0) } ?? "—")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .font(.system(size: 40, weight: .bold))
                         .foregroundStyle(Theme.textPrimary)
                         .contentTransition(.numericText())
                         .animation(.default, value: mbps ?? 0)

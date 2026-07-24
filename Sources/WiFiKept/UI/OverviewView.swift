@@ -81,7 +81,7 @@ struct OverviewView: View {
                     Label(Fmt.bytesPerSec(app.txBps), systemImage: "arrow.up")
                         .foregroundStyle(Theme.green)
                 }
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .font(.system(size: 13, weight: .semibold))
             }
             Chart {
                 ForEach(Array(app.liveHistory.enumerated()), id: \.offset) { _, point in

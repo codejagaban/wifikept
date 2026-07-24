@@ -140,7 +140,7 @@ struct MenuBarView: View {
                     .foregroundStyle(Theme.textSecondary)
             }
             Text(value)
-                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
