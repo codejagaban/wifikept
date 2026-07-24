@@ -62,7 +62,7 @@ struct MainWindow: View {
         }
         .frame(height: 54)
         .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial)
+        .background(Theme.headerBG)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Theme.stroke).frame(height: 1)
         }
@@ -87,10 +87,7 @@ struct MainWindow: View {
             }
         }
         .padding(3)
-        .background(
-            Capsule().fill(.ultraThinMaterial)
-                .overlay(Capsule().strokeBorder(Theme.stroke, lineWidth: 1))
-        )
+        .background(Capsule().fill(Theme.fillSubtle))
     }
 
     @ViewBuilder

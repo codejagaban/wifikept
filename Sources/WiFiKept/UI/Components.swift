@@ -3,41 +3,8 @@ import SwiftUI
 // MARK: - Backdrop (the atmosphere the glass refracts)
 
 struct GlassBackdrop: View {
-    @State private var drift = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            let h = geo.size.height
-            ZStack {
-                Theme.windowBG
-                orb(Theme.orbA, diameter: w * 1.0)
-                    .position(x: drift ? w * 0.12 : w * 0.32,
-                              y: drift ? h * 0.05 : h * 0.22)
-                orb(Theme.orbB, diameter: w * 0.9)
-                    .position(x: drift ? w * 0.95 : w * 0.75,
-                              y: drift ? h * 0.85 : h * 0.65)
-                orb(Theme.orbC, diameter: w * 0.8)
-                    .position(x: drift ? w * 0.75 : w * 0.5,
-                              y: drift ? h * 0.15 : h * 0.4)
-            }
-        }
-        .ignoresSafeArea()
-        .onAppear {
-            guard !reduceMotion else { return }
-            // Slow drift so the frost visibly smears moving color.
-            withAnimation(.easeInOut(duration: 24).repeatForever(autoreverses: true)) {
-                drift = true
-            }
-        }
-    }
-
-    private func orb(_ color: Color, diameter: CGFloat) -> some View {
-        Circle()
-            .fill(RadialGradient(colors: [color, .clear],
-                                 center: .center, startRadius: 0, endRadius: diameter / 2))
-            .frame(width: diameter, height: diameter)
+        Theme.windowBG.ignoresSafeArea()
     }
 }
 
@@ -48,25 +15,14 @@ struct CardStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding(padding)
-            .background {
-                let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-                shape
-                    .fill(.ultraThinMaterial)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Theme.card)
                     .overlay(
-                        // Light catching the top of the pane.
-                        shape.fill(
-                            LinearGradient(colors: [Theme.sheen, .clear],
-                                           startPoint: .top, endPoint: .center)
-                        )
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Theme.stroke, lineWidth: 1)
                     )
-                    .overlay(
-                        shape.strokeBorder(
-                            LinearGradient(colors: [Theme.glassEdgeTop, Theme.glassEdgeBottom],
-                                           startPoint: .top, endPoint: .bottom),
-                            lineWidth: 1)
-                    )
-                    .shadow(color: Theme.cardShadow, radius: 14, y: 6)
-            }
+            )
     }
 }
 
@@ -216,19 +172,14 @@ struct InsightBox: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(18)
-        .background {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.ultraThinMaterial)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(tint.opacity(0.08))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(tint.opacity(0.09))
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(tint.opacity(0.25), lineWidth: 1)
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(tint.opacity(0.28), lineWidth: 1)
-                )
-                .shadow(color: Theme.cardShadow, radius: 12, y: 5)
-        }
+        )
     }
 }
 

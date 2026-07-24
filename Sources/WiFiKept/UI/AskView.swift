@@ -109,11 +109,7 @@ struct AskView: View {
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(msg.role == .user ? Theme.blue.opacity(0.22) : Color.clear)
-                    )
+                    .fill(msg.role == .user ? Theme.blue.opacity(0.28) : Theme.card)
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
                             .strokeBorder(msg.role == .user ? Theme.blue.opacity(0.35) : Theme.stroke,
@@ -165,7 +161,7 @@ struct AskView: View {
         .padding(.vertical, 14)
         .frame(maxWidth: 860)
         .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial)
+        .background(Theme.windowBG)
     }
 
     private var canSend: Bool {
