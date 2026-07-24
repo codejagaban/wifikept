@@ -1,6 +1,6 @@
 # WiFiKept
 
-A native macOS Wi-Fi monitor inspired by [Wifilicious](https://wifilicious.app), with one big addition: **data usage tracking** — how much this Mac downloads/uploads today, this week, this month, and all time, across Wi-Fi, Ethernet and adapters.
+A native macOS Wi-Fi monitor and **data usage tracker** — signal diagnostics, honest speed tests, trends, and how much this Mac downloads/uploads today, this week, this month, and all time, across Wi-Fi, Ethernet and adapters.
 
 Everything is computed and stored locally. The only network traffic the app originates is the speed test itself (Cloudflare).
 
