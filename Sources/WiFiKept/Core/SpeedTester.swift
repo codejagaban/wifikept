@@ -29,6 +29,9 @@ final class SpeedTester: ObservableObject {
     @Published private(set) var interimDown: Double?
     @Published private(set) var result: Result?
 
+    /// Called with every finished test (AppState persists them for Trends).
+    var onResult: ((Result) -> Void)?
+
     static let cooldown: TimeInterval = 60
     private static let resultKey = "speedtest.last"
 
@@ -85,6 +88,7 @@ final class SpeedTester: ObservableObject {
         if let data = try? JSONEncoder().encode(r) {
             UserDefaults.standard.set(data, forKey: Self.resultKey)
         }
+        onResult?(r)
         phase = .done
     }
 

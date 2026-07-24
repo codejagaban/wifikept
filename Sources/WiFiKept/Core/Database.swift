@@ -20,6 +20,13 @@ struct UsageRow {
     var tx: Int64
 }
 
+struct SpeedRow {
+    var ts: Date
+    var down: Double
+    var up: Double
+    var latency: Double?
+}
+
 /// Tiny serial-queue SQLite wrapper. Two tables:
 ///   usage(ts, rx, tx)  — one row per flush (~1/min), kept forever
 ///   trend(ts, rssi, noise, txrate, latency, rxbps, txbps, channel) — 90-day window
@@ -43,6 +50,10 @@ final class Database {
             exec("""
                 CREATE TABLE IF NOT EXISTS counter_state(
                     iface TEXT PRIMARY KEY, boot INTEGER, rx INTEGER, tx INTEGER, seen INTEGER)
+                """)
+            exec("""
+                CREATE TABLE IF NOT EXISTS speedtest(
+                    ts INTEGER PRIMARY KEY, down REAL, up REAL, latency REAL, dns REAL)
                 """)
         }
     }
@@ -113,6 +124,40 @@ final class Database {
             }
             sqlite3_finalize(stmt)
             return result
+        }
+    }
+
+    // MARK: - Speed tests
+
+    func addSpeedTest(ts: Date, down: Double, up: Double, latency: Double?, dns: Double?) {
+        q.sync {
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "INSERT OR REPLACE INTO speedtest(ts, down, up, latency, dns) VALUES(?,?,?,?,?)", -1, &stmt, nil)
+            sqlite3_bind_int64(stmt, 1, Int64(ts.timeIntervalSince1970))
+            sqlite3_bind_double(stmt, 2, down)
+            sqlite3_bind_double(stmt, 3, up)
+            if let latency { sqlite3_bind_double(stmt, 4, latency) } else { sqlite3_bind_null(stmt, 4) }
+            if let dns { sqlite3_bind_double(stmt, 5, dns) } else { sqlite3_bind_null(stmt, 5) }
+            sqlite3_step(stmt)
+            sqlite3_finalize(stmt)
+        }
+    }
+
+    func speedTests(from: Date?) -> [SpeedRow] {
+        q.sync {
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "SELECT ts, down, up, latency FROM speedtest WHERE ts >= ? ORDER BY ts", -1, &stmt, nil)
+            sqlite3_bind_int64(stmt, 1, Int64(from?.timeIntervalSince1970 ?? 0))
+            var rows: [SpeedRow] = []
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                rows.append(SpeedRow(
+                    ts: Date(timeIntervalSince1970: Double(sqlite3_column_int64(stmt, 0))),
+                    down: sqlite3_column_double(stmt, 1),
+                    up: sqlite3_column_double(stmt, 2),
+                    latency: sqlite3_column_type(stmt, 3) == SQLITE_NULL ? nil : sqlite3_column_double(stmt, 3)))
+            }
+            sqlite3_finalize(stmt)
+            return rows
         }
     }
 

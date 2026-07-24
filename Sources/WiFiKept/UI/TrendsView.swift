@@ -3,6 +3,7 @@ import Charts
 
 enum TrendMetric: String, CaseIterable, Identifiable {
     case signal = "Signal"
+    case speed = "Speed"
     case link = "Link"
     case latency = "Latency"
     case noiseSNR = "Noise & SNR"
@@ -34,6 +35,7 @@ struct TrendsView: View {
     @State private var metric: TrendMetric = .signal
     @State private var range: TrendRange = .h6
     @State private var rows: [TrendRow] = []
+    @State private var speedRows: [SpeedRow] = []
     @State private var hoverDate: Date?
 
     private let reload = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
@@ -50,7 +52,7 @@ struct TrendsView: View {
                     Spacer()
                 }
                 HStack {
-                    Text("\(rows.count) samples")
+                    Text(metric == .speed ? "\(speedRows.count) tests" : "\(rows.count) samples")
                         .font(.system(size: 12))
                         .foregroundStyle(Theme.textTertiary)
                     Spacer()
@@ -82,6 +84,7 @@ struct TrendsView: View {
         } else {
             rows = downsample(app.allTrendRows())
         }
+        speedRows = app.speedRows(hours: range.hours)
     }
 
     /// Cap what the chart draws so long ranges stay fluid.
@@ -120,6 +123,8 @@ struct TrendsView: View {
         case .signal:
             lineChart(values: rows.map { ($0.ts, Double($0.rssi)) }, color: Theme.blue,
                       unit: "dBm", domain: -100...0)
+        case .speed:
+            speedChart
         case .link:
             lineChart(values: rows.map { ($0.ts, $0.txRate) }, color: Theme.green, unit: "Mbps", domain: nil)
         case .latency:
@@ -162,6 +167,36 @@ struct TrendsView: View {
         }
         .modifier(TrendChartStyle(domain: domain))
         .chartXSelection(value: $hoverDate)
+    }
+
+    private var speedChart: some View {
+        Chart {
+            ForEach(Array(speedRows.enumerated()), id: \.offset) { _, r in
+                LineMark(x: .value("Time", r.ts), y: .value("Mbps", r.down),
+                         series: .value("Series", "Down"))
+                    .foregroundStyle(Theme.blue)
+                    .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
+                    .interpolationMethod(.monotone)
+                    .symbol { Circle().fill(Theme.blue).frame(width: 6, height: 6) }
+                LineMark(x: .value("Time", r.ts), y: .value("Mbps", r.up),
+                         series: .value("Series", "Up"))
+                    .foregroundStyle(Theme.green)
+                    .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
+                    .interpolationMethod(.monotone)
+                    .symbol { Circle().fill(Theme.green).frame(width: 6, height: 6) }
+            }
+        }
+        .modifier(TrendChartStyle(domain: nil))
+        .chartForegroundStyleScale(["Down": Theme.blue, "Up": Theme.green])
+        .overlay {
+            if speedRows.isEmpty {
+                Text("No speed tests in this range yet — run one in the Speed tab, or turn on automatic tests in Settings.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 420)
+            }
+        }
     }
 
     private var noiseChart: some View {
@@ -237,6 +272,17 @@ struct TrendsView: View {
     }
 
     private var stats: [(String, String, Color)] {
+        if metric == .speed {
+            guard !speedRows.isEmpty else { return [("No speed tests yet", "—", Theme.textSecondary)] }
+            let downs = speedRows.map(\.down)
+            let ups = speedRows.map(\.up)
+            return [
+                ("Avg Down", Fmt.bitsPerSec(downs.reduce(0, +) / Double(downs.count) * 1_000_000), Theme.blue),
+                ("Best Down", Fmt.bitsPerSec((downs.max() ?? 0) * 1_000_000), Theme.blue),
+                ("Avg Up", Fmt.bitsPerSec(ups.reduce(0, +) / Double(ups.count) * 1_000_000), Theme.green),
+                ("Tests", "\(speedRows.count)", Theme.textSecondary),
+            ]
+        }
         guard !rows.isEmpty else { return [("No data yet", "—", Theme.textSecondary)] }
         switch metric {
         case .signal, .noiseSNR:
@@ -273,6 +319,8 @@ struct TrendsView: View {
                 ("Peak Down", Fmt.bitsPerSec((rx.max() ?? 0) * 8), Theme.blue),
                 ("Peak Up", Fmt.bitsPerSec((tx.max() ?? 0) * 8), Theme.green),
             ]
+        case .speed:
+            return [] // handled above
         case .channel:
             let channels = Set(rows.map(\.channel))
             return [
