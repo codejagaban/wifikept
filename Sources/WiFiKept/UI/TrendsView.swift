@@ -158,7 +158,8 @@ struct TrendsView: View {
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
                 PointMark(x: .value("Time", nearest.0), y: .value(unit, nearest.1))
                     .foregroundStyle(color)
-                    .annotation(position: .top) {
+                    .annotation(position: .top, spacing: 6,
+                                overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
                         Text("\(Int(nearest.1)) \(unit)")
                             .font(.system(size: 11, weight: .semibold))
                             .padding(6)

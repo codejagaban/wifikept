@@ -236,7 +236,8 @@ struct UsageView: View {
             if let hoverDate, let bucket = nearestBucket(to: hoverDate) {
                 RuleMark(x: .value("Date", bucket.date, unit: barUnit))
                     .foregroundStyle(Theme.marker)
-                    .annotation(position: .top) {
+                    .annotation(position: .top, spacing: 6,
+                                overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(bucketLabel(bucket.date))
                                 .font(.system(size: 11, weight: .semibold))
@@ -252,6 +253,7 @@ struct UsageView: View {
         }
         .chartXSelection(value: $hoverDate)
         .chartXScale(domain: xDomain)
+        .chartYScale(domain: 0...yMax)
         .chartXAxis {
             AxisMarks {
                 AxisGridLine().foregroundStyle(Theme.gridline)
@@ -270,6 +272,17 @@ struct UsageView: View {
             }
         }
         .chartLegend(.hidden)
+    }
+
+    /// Pin the Y axis to the data so the hover tooltip doesn't rescale
+    /// the chart when it appears.
+    private var yMax: Double {
+        let peak: Int64
+        switch chartStyle {
+        case .bar: peak = series.map { $0.rx + $0.tx }.max() ?? 0
+        case .line: peak = series.map { max($0.rx, $0.tx) }.max() ?? 0
+        }
+        return max(Double(peak) * 1.15, 1)
     }
 
     /// Pin the axis to the full selected range so sparse data doesn't
