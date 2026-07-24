@@ -292,26 +292,37 @@ struct UsageView: View {
         return max(Double(peak) * 1.15, 1)
     }
 
-    /// Pin the axis to the full selected range so sparse data doesn't
-    /// stretch a single bucket across the whole chart.
     private var xDomain: ClosedRange<Date> {
-        let cal = Calendar.current
-        let now = Date()
+        UsageView.xDomain(range: range, now: Date(), since: totals.since)
+    }
+
+    /// Pin the axis to the full selected range so sparse data doesn't
+    /// stretch a single bucket across the whole chart. The upper bound must
+    /// land on the END of the current bucket (end of today / hour / month) —
+    /// ending mid-bucket lets the newest bar's slot overflow the plot edge
+    /// and draw over the axis labels after midnight.
+    static func xDomain(range: UsageRange, now: Date, since: Date?,
+                        calendar cal: Calendar = .current) -> ClosedRange<Date> {
         switch range {
         case .day:
-            return now.addingTimeInterval(-86_400)...now
+            let end = cal.dateInterval(of: .hour, for: now)?.end ?? now
+            return end.addingTimeInterval(-24 * 3600)...end
         case .week:
-            return cal.startOfDay(for: now.addingTimeInterval(-6 * 86_400))...now.addingTimeInterval(3600)
+            let end = cal.startOfDay(for: now).addingTimeInterval(86_400)
+            return cal.startOfDay(for: now.addingTimeInterval(-6 * 86_400))...end
         case .month:
-            return cal.startOfDay(for: now.addingTimeInterval(-29 * 86_400))...now.addingTimeInterval(3600)
+            let end = cal.startOfDay(for: now).addingTimeInterval(86_400)
+            return cal.startOfDay(for: now.addingTimeInterval(-29 * 86_400))...end
         case .year:
             let start = cal.date(byAdding: .month, value: -11,
                                  to: cal.dateInterval(of: .month, for: now)?.start ?? now) ?? now
-            return start...now.addingTimeInterval(3600)
+            let end = cal.dateInterval(of: .month, for: now)?.end ?? now
+            return start...end
         case .all:
-            let first = totals.since ?? now.addingTimeInterval(-86_400)
+            let first = since ?? now.addingTimeInterval(-86_400)
             let start = cal.dateInterval(of: .month, for: first)?.start ?? first
-            return start...now.addingTimeInterval(3600)
+            let end = cal.dateInterval(of: .month, for: now)?.end ?? now
+            return start...end
         }
     }
 

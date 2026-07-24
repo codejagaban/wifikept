@@ -205,3 +205,40 @@ final class DatabaseTests: XCTestCase {
         XCTAssertTrue(zip(rows, rows.dropFirst()).allSatisfy { $0.ts <= $1.ts })
     }
 }
+
+// MARK: - Usage chart domain (day-rollover regression)
+
+final class UsageDomainTests: XCTestCase {
+    /// The newest bucket's full slot must fit inside the domain — otherwise
+    /// the current day/hour/month bar clips past the plot edge (the
+    /// after-midnight sliver bug).
+    @MainActor
+    func testDomainContainsCurrentBucketSlot() {
+        let cal = Calendar.current
+        // Just after midnight — the failure case.
+        let now = cal.startOfDay(for: Date()).addingTimeInterval(40 * 60)
+
+        for range in UsageRange.allCases {
+            let domain = UsageView.xDomain(range: range, now: now, since: now.addingTimeInterval(-90 * 86_400))
+            let unit: Calendar.Component
+            switch range {
+            case .day: unit = .hour
+            case .week, .month: unit = .day
+            case .year, .all: unit = .month
+            }
+            let slot = cal.dateInterval(of: unit, for: now)!
+            XCTAssertGreaterThanOrEqual(domain.upperBound, slot.end,
+                "\(range.rawValue): current bucket slot must end inside the domain")
+            XCTAssertLessThanOrEqual(domain.lowerBound, slot.start)
+        }
+    }
+
+    @MainActor
+    func testWeekDomainSpansSevenDays() {
+        let cal = Calendar.current
+        let now = Date()
+        let domain = UsageView.xDomain(range: .week, now: now, since: nil)
+        let days = cal.dateComponents([.day], from: domain.lowerBound, to: domain.upperBound).day!
+        XCTAssertEqual(days, 7)
+    }
+}
