@@ -7,6 +7,8 @@ struct SettingsView: View {
     @AppStorage("appearance") private var appearanceRaw = AppearanceSetting.system.rawValue
     @AppStorage("speedtest.schedule") private var speedSchedule = 0.0
     @AppStorage("budget.gb") private var budgetGB = 0.0
+    @AppStorage("updates.auto") private var autoUpdates = true
+    @ObservedObject private var updater = UpdateChecker.shared
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
 
@@ -89,6 +91,43 @@ struct SettingsView: View {
                     Text(app.insights.aiAvailable ? "Available — insights are generated on-device"
                                                   : "Unavailable — using built-in summaries")
                         .foregroundStyle(app.insights.aiAvailable ? .green : .secondary)
+                }
+            }
+
+            Section("Updates") {
+                LabeledContent("Version", value: updater.currentVersion)
+                Toggle("Check automatically", isOn: $autoUpdates)
+                HStack {
+                    switch updater.state {
+                    case .idle:
+                        Text("").font(.caption)
+                    case .checking:
+                        ProgressView().controlSize(.small)
+                        Text("Checking…").font(.caption).foregroundStyle(.secondary)
+                    case .upToDate:
+                        Text("You're on the latest version.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    case .available(let v):
+                        Text("Version \(v) is available.")
+                            .font(.caption).foregroundStyle(Theme.green)
+                    case .working(let label):
+                        ProgressView().controlSize(.small)
+                        Text(label).font(.caption).foregroundStyle(.secondary)
+                    case .failed(let message):
+                        Text(message).font(.caption).foregroundStyle(.red)
+                    }
+                    Spacer()
+                    if case .available = updater.state {
+                        Button("Install & Relaunch") {
+                            Task { await updater.installAvailableUpdate() }
+                        }
+                    } else if case .working = updater.state {
+                        EmptyView()
+                    } else {
+                        Button("Check Now") {
+                            Task { await updater.check() }
+                        }
+                    }
                 }
             }
 
