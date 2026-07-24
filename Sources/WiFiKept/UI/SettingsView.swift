@@ -4,11 +4,21 @@ import ServiceManagement
 struct SettingsView: View {
     @EnvironmentObject var app: AppState
     @AppStorage("menubar.metric") private var metricRaw = MenuBarMetric.quality.rawValue
+    @AppStorage("appearance") private var appearanceRaw = AppearanceSetting.system.rawValue
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
 
     var body: some View {
         Form {
+            Section("Appearance") {
+                Picker("Theme", selection: $appearanceRaw) {
+                    ForEach(AppearanceSetting.allCases) { a in
+                        Text(a.rawValue).tag(a.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+
             Section("General") {
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, on in
@@ -60,5 +70,6 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)
+        .preferredColorScheme((AppearanceSetting(rawValue: appearanceRaw) ?? .system).scheme)
     }
 }

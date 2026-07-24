@@ -1,32 +1,82 @@
 import SwiftUI
+import AppKit
 
-extension Color {
-    init(hex: UInt32) {
-        self.init(.sRGB,
-                  red: Double((hex >> 16) & 0xFF) / 255,
-                  green: Double((hex >> 8) & 0xFF) / 255,
-                  blue: Double(hex & 0xFF) / 255)
+extension NSColor {
+    convenience init(hex: UInt32, alpha: CGFloat = 1) {
+        self.init(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
+                  green: CGFloat((hex >> 8) & 0xFF) / 255,
+                  blue: CGFloat(hex & 0xFF) / 255,
+                  alpha: alpha)
     }
 }
 
+extension Color {
+    init(hex: UInt32) {
+        self.init(nsColor: NSColor(hex: hex))
+    }
+}
+
+/// App palette. Every color is a dynamic NSColor that resolves against the
+/// effective appearance, so the whole UI adapts to light/dark automatically.
 enum Theme {
-    static let windowBG = Color(hex: 0x14161C)
-    static let headerBG = Color(hex: 0x0D0F13)
-    static let card = Color(hex: 0x1C202A)
-    static let cardElevated = Color(hex: 0x222735)
-    static let stroke = Color.white.opacity(0.06)
+    private static func dyn(light: NSColor, dark: NSColor) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
+        })
+    }
 
-    static let textPrimary = Color(hex: 0xF2F4F8)
-    static let textSecondary = Color(hex: 0x9AA3B2)
-    static let textTertiary = Color(hex: 0x687080)
+    private static func dyn(light: UInt32, dark: UInt32) -> Color {
+        dyn(light: NSColor(hex: light), dark: NSColor(hex: dark))
+    }
 
-    static let green = Color(hex: 0x32D74B)
-    static let blue = Color(hex: 0x0A84FF)
-    static let orange = Color(hex: 0xFF9F0A)
-    static let purple = Color(hex: 0xBF5AF2)
-    static let pink = Color(hex: 0xFF375F)
-    static let teal = Color(hex: 0x40C8E0)
-    static let yellow = Color(hex: 0xFFD60A)
-    static let red = Color(hex: 0xFF453A)
-    static let indigo = Color(hex: 0x5E5CE6)
+    // Surfaces
+    static let windowBG = dyn(light: 0xF2F3F6, dark: 0x14161C)
+    static let headerBG = dyn(light: 0xE7E9EE, dark: 0x0D0F13)
+    static let card = dyn(light: 0xFFFFFF, dark: 0x1C202A)
+    static let cardElevated = dyn(light: 0xFFFFFF, dark: 0x222735)
+    static let stroke = dyn(light: NSColor.black.withAlphaComponent(0.08),
+                            dark: NSColor.white.withAlphaComponent(0.06))
+
+    // Neutral overlays (bars, pill containers, gauge tracks, gridlines)
+    static let fillSubtle = dyn(light: NSColor.black.withAlphaComponent(0.05),
+                                dark: NSColor.white.withAlphaComponent(0.06))
+    static let fillSelected = dyn(light: NSColor.black.withAlphaComponent(0.10),
+                                  dark: NSColor.white.withAlphaComponent(0.12))
+    static let track = dyn(light: NSColor.black.withAlphaComponent(0.08),
+                           dark: NSColor.white.withAlphaComponent(0.08))
+    static let gridline = dyn(light: NSColor.black.withAlphaComponent(0.06),
+                              dark: NSColor.white.withAlphaComponent(0.05))
+    static let marker = dyn(light: NSColor.black.withAlphaComponent(0.35),
+                            dark: NSColor.white.withAlphaComponent(0.30))
+
+    // Text
+    static let textPrimary = dyn(light: 0x1A1D24, dark: 0xF2F4F8)
+    static let textSecondary = dyn(light: 0x5C6572, dark: 0x9AA3B2)
+    static let textTertiary = dyn(light: 0x8B93A1, dark: 0x687080)
+
+    // Accents — Apple's system light/dark pairs so they read on both surfaces
+    static let green = dyn(light: 0x28CD41, dark: 0x32D74B)
+    static let blue = dyn(light: 0x007AFF, dark: 0x0A84FF)
+    static let orange = dyn(light: 0xFF9500, dark: 0xFF9F0A)
+    static let purple = dyn(light: 0xAF52DE, dark: 0xBF5AF2)
+    static let pink = dyn(light: 0xFF2D55, dark: 0xFF375F)
+    static let teal = dyn(light: 0x30B0C7, dark: 0x40C8E0)
+    static let yellow = dyn(light: 0xF5B800, dark: 0xFFD60A)
+    static let red = dyn(light: 0xFF3B30, dark: 0xFF453A)
+    static let indigo = dyn(light: 0x5856D6, dark: 0x5E5CE6)
+}
+
+/// User-selectable appearance, stored in AppStorage("appearance").
+enum AppearanceSetting: String, CaseIterable, Identifiable {
+    case system = "System"
+    case light = "Light"
+    case dark = "Dark"
+    var id: String { rawValue }
+    var scheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
 }

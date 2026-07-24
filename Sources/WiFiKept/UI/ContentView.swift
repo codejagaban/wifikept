@@ -13,6 +13,7 @@ enum MainTab: String, CaseIterable, Identifiable {
 
 struct MainWindow: View {
     @EnvironmentObject var app: AppState
+    @AppStorage("appearance") private var appearanceRaw = AppearanceSetting.system.rawValue
     @State private var tab: MainTab = .overview
 
     var body: some View {
@@ -32,7 +33,7 @@ struct MainWindow: View {
         }
         .background(Theme.windowBG)
         .frame(minWidth: 960, minHeight: 700)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme((AppearanceSetting(rawValue: appearanceRaw) ?? .system).scheme)
     }
 
     private var header: some View {
@@ -49,7 +50,7 @@ struct MainWindow: View {
                         .font(.system(size: 14))
                         .foregroundStyle(Theme.textSecondary)
                         .frame(width: 30, height: 30)
-                        .background(Circle().fill(Color.white.opacity(0.06)))
+                        .background(Circle().fill(Theme.fillSubtle))
                 }
                 .buttonStyle(.plain)
                 .help("Settings")
@@ -71,14 +72,14 @@ struct MainWindow: View {
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
                         .background(
-                            Capsule().fill(tab == t ? Color.white.opacity(0.12) : Color.clear)
+                            Capsule().fill(tab == t ? Theme.fillSelected : Color.clear)
                         )
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(3)
-        .background(Capsule().fill(Color.white.opacity(0.05)))
+        .background(Capsule().fill(Theme.gridline))
     }
 
     @ViewBuilder

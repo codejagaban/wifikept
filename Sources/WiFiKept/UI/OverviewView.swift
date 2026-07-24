@@ -106,7 +106,7 @@ struct OverviewView: View {
             .chartXAxis(.hidden)
             .chartYAxis {
                 AxisMarks { value in
-                    AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
+                    AxisGridLine().foregroundStyle(Theme.gridline)
                     AxisValueLabel {
                         if let v = value.as(Double.self) {
                             Text(Fmt.bytesPerSec(v))

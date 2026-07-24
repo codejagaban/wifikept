@@ -45,6 +45,7 @@ struct MenuBarLabel: View {
 
 struct MenuBarView: View {
     @EnvironmentObject var app: AppState
+    @AppStorage("appearance") private var appearanceRaw = AppearanceSetting.system.rawValue
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
 
@@ -84,7 +85,7 @@ struct MenuBarView: View {
         .padding(12)
         .frame(width: 360)
         .background(Theme.headerBG)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme((AppearanceSetting(rawValue: appearanceRaw) ?? .system).scheme)
     }
 
     private var todayTotal: String {

@@ -33,16 +33,23 @@ enum SnapshotMode {
     }
 
     private static func write(view: some View, width: CGFloat?, to url: URL) {
-        let renderer = ImageRenderer(content: view.environment(\.colorScheme, .dark))
+        // WIFIKEPT_APPEARANCE=light renders the light theme; default is dark.
+        let light = ProcessInfo.processInfo.environment["WIFIKEPT_APPEARANCE"] == "light"
+        let renderer = ImageRenderer(content: view.environment(\.colorScheme, light ? .light : .dark))
         if let width {
             renderer.proposedSize = ProposedViewSize(width: width, height: nil)
         }
         renderer.scale = 2
-        guard let img = renderer.nsImage,
-              let tiff = img.tiffRepresentation,
-              let rep = NSBitmapImageRep(data: tiff),
-              let png = rep.representation(using: .png, properties: [:]) else { return }
-        try? png.write(to: url)
+        let appearance = NSAppearance(named: light ? .aqua : .darkAqua)!
+        var png: Data?
+        appearance.performAsCurrentDrawingAppearance {
+            if let img = renderer.nsImage,
+               let tiff = img.tiffRepresentation,
+               let rep = NSBitmapImageRep(data: tiff) {
+                png = rep.representation(using: .png, properties: [:])
+            }
+        }
+        try? png?.write(to: url)
     }
 }
 

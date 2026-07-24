@@ -76,7 +76,7 @@ struct AskView: View {
                             .foregroundStyle(Theme.textPrimary)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 9)
-                            .background(Capsule().fill(Color.white.opacity(0.07)))
+                            .background(Capsule().fill(Theme.fillSubtle))
                             .overlay(Capsule().strokeBorder(Theme.stroke, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
@@ -131,7 +131,7 @@ struct AskView: View {
                         .font(.system(size: 13))
                         .foregroundStyle(Theme.textTertiary)
                         .frame(width: 34, height: 34)
-                        .background(Circle().fill(Color.white.opacity(0.06)))
+                        .background(Circle().fill(Theme.fillSubtle))
                 }
                 .buttonStyle(.plain)
                 .help("Clear conversation")
@@ -145,7 +145,7 @@ struct AskView: View {
                 .onSubmit { submit(draft) }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(Capsule().fill(Color.white.opacity(0.07)))
+                .background(Capsule().fill(Theme.fillSubtle))
                 .overlay(Capsule().strokeBorder(Theme.stroke, lineWidth: 1))
             Button {
                 submit(draft)

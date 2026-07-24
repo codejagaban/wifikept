@@ -109,7 +109,7 @@ struct TrendsView: View {
             }
         }
         .padding(3)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: 10).fill(Theme.fillSubtle))
     }
 
     // MARK: - Chart
@@ -148,7 +148,7 @@ struct TrendsView: View {
             }
             if let hoverDate, let nearest = nearestValue(in: values, to: hoverDate) {
                 RuleMark(x: .value("Time", nearest.0))
-                    .foregroundStyle(Color.white.opacity(0.3))
+                    .foregroundStyle(Theme.marker)
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
                 PointMark(x: .value("Time", nearest.0), y: .value(unit, nearest.1))
                     .foregroundStyle(color)
@@ -299,13 +299,13 @@ private struct TrendChartStyle: ViewModifier {
         let styled = content
             .chartXAxis {
                 AxisMarks {
-                    AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
+                    AxisGridLine().foregroundStyle(Theme.gridline)
                     AxisValueLabel().foregroundStyle(Theme.textTertiary)
                 }
             }
             .chartYAxis {
                 AxisMarks {
-                    AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
+                    AxisGridLine().foregroundStyle(Theme.gridline)
                     AxisValueLabel().foregroundStyle(Theme.textTertiary)
                 }
             }

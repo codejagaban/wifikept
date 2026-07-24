@@ -126,7 +126,7 @@ struct UsageView: View {
             }
             if let hoverDate, let bucket = nearestBucket(to: hoverDate) {
                 RuleMark(x: .value("Date", bucket.date, unit: barUnit))
-                    .foregroundStyle(Color.white.opacity(0.25))
+                    .foregroundStyle(Theme.marker)
                     .annotation(position: .top) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(bucketLabel(bucket.date))
@@ -145,13 +145,13 @@ struct UsageView: View {
         .chartXScale(domain: xDomain)
         .chartXAxis {
             AxisMarks {
-                AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
+                AxisGridLine().foregroundStyle(Theme.gridline)
                 AxisValueLabel().foregroundStyle(Theme.textTertiary)
             }
         }
         .chartYAxis {
             AxisMarks { value in
-                AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
+                AxisGridLine().foregroundStyle(Theme.gridline)
                 AxisValueLabel {
                     if let v = value.as(Double.self) {
                         Text(Fmt.bytes(Int64(v)))

@@ -77,7 +77,7 @@ struct ArcGauge: View {
         ZStack {
             Circle()
                 .trim(from: 0, to: 0.75)
-                .stroke(Color.white.opacity(0.08),
+                .stroke(Theme.track,
                         style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(135))
             Circle()
@@ -112,7 +112,7 @@ struct MeterRow: View {
             }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color.white.opacity(0.09))
+                    Capsule().fill(Theme.track)
                     Capsule().fill(color)
                         .frame(width: max(6, geo.size.width * min(1, max(0, progress))))
                         .animation(.easeOut(duration: 0.5), value: progress)
@@ -201,7 +201,7 @@ struct PillPicker<T: Hashable>: View {
             }
         }
         .padding(3)
-        .background(Capsule().fill(Color.white.opacity(0.06)))
+        .background(Capsule().fill(Theme.fillSubtle))
     }
 }
 
