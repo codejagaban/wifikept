@@ -372,7 +372,8 @@ final class Database {
             var count = 0
             if sqlite3_step(stmt) == SQLITE_ROW { count = Int(sqlite3_column_int(stmt, 0)) }
             sqlite3_finalize(stmt)
-            let stride = max(1, count / maxPoints)
+            // Ceiling division — a floor here lets result counts exceed maxPoints.
+            let stride = max(1, (count + maxPoints - 1) / maxPoints)
 
             if stride == 1 {
                 sqlite3_prepare_v2(db, """
