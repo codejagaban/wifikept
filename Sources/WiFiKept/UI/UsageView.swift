@@ -142,6 +142,7 @@ struct UsageView: View {
             }
         }
         .chartXSelection(value: $hoverDate)
+        .chartXScale(domain: xDomain)
         .chartXAxis {
             AxisMarks {
                 AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
@@ -160,6 +161,29 @@ struct UsageView: View {
             }
         }
         .chartLegend(.hidden)
+    }
+
+    /// Pin the axis to the full selected range so sparse data doesn't
+    /// stretch a single bucket across the whole chart.
+    private var xDomain: ClosedRange<Date> {
+        let cal = Calendar.current
+        let now = Date()
+        switch range {
+        case .day:
+            return now.addingTimeInterval(-86_400)...now
+        case .week:
+            return cal.startOfDay(for: now.addingTimeInterval(-6 * 86_400))...now.addingTimeInterval(3600)
+        case .month:
+            return cal.startOfDay(for: now.addingTimeInterval(-29 * 86_400))...now.addingTimeInterval(3600)
+        case .year:
+            let start = cal.date(byAdding: .month, value: -11,
+                                 to: cal.dateInterval(of: .month, for: now)?.start ?? now) ?? now
+            return start...now.addingTimeInterval(3600)
+        case .all:
+            let first = totals.since ?? now.addingTimeInterval(-86_400)
+            let start = cal.dateInterval(of: .month, for: first)?.start ?? first
+            return start...now.addingTimeInterval(3600)
+        }
     }
 
     private var barUnit: Calendar.Component {
