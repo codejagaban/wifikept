@@ -100,7 +100,7 @@ struct SignalView: View {
             MetricCard(icon: "wifi", iconColor: Theme.teal,
                        title: "Standard", value: snap.standard,
                        detail: snap.standardDetail)
-            MetricCard(icon: "gauge.with.needle", iconColor: Theme.green,
+            MetricCard(icon: "gauge.with.needle", iconColor: Theme.textSecondary,
                        title: "Link Rate", value: snap.txRate > 0 ? "\(Int(snap.txRate)) Mbps" : "—",
                        detail: "negotiated PHY rate")
             MetricCard(icon: "bolt.fill", iconColor: Theme.orange,

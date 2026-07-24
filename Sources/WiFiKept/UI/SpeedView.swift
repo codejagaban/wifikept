@@ -22,7 +22,7 @@ struct SpeedView: View {
                            title: "DNS",
                            value: tester.result?.dnsMs.map { Fmt.ms($0) } ?? "—",
                            detail: dnsRating)
-                MetricCard(icon: "checkmark.seal.fill", iconColor: Theme.green,
+                MetricCard(icon: "checkmark.seal.fill", iconColor: Theme.textSecondary,
                            title: "Connection", value: connectionRating.0,
                            detail: connectionRating.1)
             }
@@ -42,7 +42,7 @@ struct SpeedView: View {
                     for: "speed",
                     context: speedContext,
                     fallback: FallbackInsight.speed(tester.result)),
-                tint: Theme.green)
+                tint: Theme.ink)
         }
         .onReceive(clock) { now = $0 }
     }
@@ -54,14 +54,14 @@ struct SpeedView: View {
             HStack(spacing: 0) {
                 gauge(title: "DOWNLOAD",
                       mbps: displayDown,
-                      color: Theme.blue,
+                      color: Theme.ink,
                       icon: "arrow.down",
                       active: tester.phase == .download)
                     .frame(maxWidth: .infinity)
                 Rectangle().fill(Theme.stroke).frame(width: 1).padding(.vertical, 16)
                 gauge(title: "UPLOAD",
                       mbps: displayUp,
-                      color: Theme.green,
+                      color: Theme.ink,
                       icon: "arrow.up",
                       active: tester.phase == .upload)
                     .frame(maxWidth: .infinity)
@@ -92,7 +92,7 @@ struct SpeedView: View {
                 VStack(spacing: 2) {
                     Image(systemName: icon)
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color.white)
+                        .foregroundStyle(Theme.inkContrast)
                         .frame(width: 24, height: 24)
                         .background(Circle().fill(color))
                     Text(mbps.map { $0 >= 100 ? String(format: "%.0f", $0) : String(format: "%.1f", $0) } ?? "—")
@@ -151,8 +151,8 @@ struct SpeedView: View {
                         .font(.system(size: 13, weight: .semibold))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
-                        .background(Capsule().fill(Theme.blue))
-                        .foregroundStyle(.white)
+                        .background(Capsule().fill(Theme.ink))
+                        .foregroundStyle(Theme.inkContrast)
                 }
                 .buttonStyle(.plain)
             }

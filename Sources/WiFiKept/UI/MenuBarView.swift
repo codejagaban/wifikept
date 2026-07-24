@@ -67,7 +67,7 @@ struct MenuBarView: View {
                      value: app.latencyMs.map { Fmt.ms($0) } ?? "—")
                 cell(icon: "wifi.router.fill", color: Theme.blue, title: "Standard",
                      value: snap.standard)
-                cell(icon: "lock.shield.fill", color: Theme.green, title: "Security",
+                cell(icon: "lock.shield.fill", color: Theme.textSecondary, title: "Security",
                      value: snap.security)
                 cell(icon: "antenna.radiowaves.left.and.right", color: Theme.teal, title: "Band",
                      value: snap.bandLabel)

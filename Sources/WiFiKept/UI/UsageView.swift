@@ -41,7 +41,7 @@ struct UsageView: View {
             totalCard(title: "Today", pair: totals.today, color: Theme.blue)
             totalCard(title: "This Week", pair: totals.week, color: Theme.teal)
             totalCard(title: "This Month", pair: totals.month, color: Theme.purple)
-            totalCard(title: "All Time", pair: totals.allTime, color: Theme.green)
+            totalCard(title: "All Time", pair: totals.allTime, color: Theme.ink)
         }
     }
 
@@ -104,7 +104,7 @@ struct UsageView: View {
                     Label("Download", systemImage: "square.fill")
                         .foregroundStyle(Theme.blue)
                     Label("Upload", systemImage: "square.fill")
-                        .foregroundStyle(Theme.green)
+                        .foregroundStyle(Theme.seriesSecondary)
                 }
                 .font(.system(size: 11))
             }
@@ -121,7 +121,7 @@ struct UsageView: View {
                     .cornerRadius(3)
                 BarMark(x: .value("Date", b.date, unit: barUnit),
                         y: .value("Bytes", Double(b.tx)))
-                    .foregroundStyle(Theme.green)
+                    .foregroundStyle(Theme.seriesSecondary)
                     .cornerRadius(3)
             }
             if let hoverDate, let bucket = nearestBucket(to: hoverDate) {
@@ -213,7 +213,7 @@ struct UsageView: View {
             MetricCard(icon: "arrow.down.circle.fill", iconColor: Theme.blue,
                        title: "Receiving", value: Fmt.bytesPerSec(app.rxBps),
                        detail: "live")
-            MetricCard(icon: "arrow.up.circle.fill", iconColor: Theme.green,
+            MetricCard(icon: "arrow.up.circle.fill", iconColor: Theme.textSecondary,
                        title: "Sending", value: Fmt.bytesPerSec(app.txBps),
                        detail: "live")
             MetricCard(icon: "internaldrive.fill", iconColor: Theme.purple,
