@@ -187,6 +187,9 @@ struct MenuBarView: View {
 @ViewBuilder
 func glassShape(_ shape: some InsettableShape) -> some View {
     shape.fill(.ultraThinMaterial)
+        .overlay(shape.fill(
+            LinearGradient(colors: [Theme.sheen, .clear],
+                           startPoint: .top, endPoint: .center)))
         .overlay(shape.strokeBorder(
             LinearGradient(colors: [Theme.glassEdgeTop, Theme.glassEdgeBottom],
                            startPoint: .top, endPoint: .bottom),

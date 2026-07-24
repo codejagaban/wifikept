@@ -37,17 +37,23 @@ enum Theme {
     static let stroke = dyn(light: NSColor.black.withAlphaComponent(0.08),
                             dark: NSColor.white.withAlphaComponent(0.06))
 
-    // Glass: backdrop glows, edge highlights and card shadows
-    static let glowA = dyn(light: NSColor.white.withAlphaComponent(0.75),
-                           dark: NSColor(hex: 0x2B3652, alpha: 0.50))
-    static let glowB = dyn(light: NSColor(hex: 0xC7D5EC, alpha: 0.60),
-                           dark: NSColor(hex: 0x123A42, alpha: 0.40))
-    static let glassEdgeTop = dyn(light: NSColor.white.withAlphaComponent(0.75),
-                                  dark: NSColor.white.withAlphaComponent(0.20))
-    static let glassEdgeBottom = dyn(light: NSColor.white.withAlphaComponent(0.20),
-                                     dark: NSColor.white.withAlphaComponent(0.04))
-    static let cardShadow = dyn(light: NSColor.black.withAlphaComponent(0.10),
-                                dark: NSColor.black.withAlphaComponent(0.40))
+    // Glass: backdrop color orbs, edge highlights, sheen and card shadows.
+    // The orbs are deliberately saturated — frosted cards read as glass only
+    // when there's visible color behind them to blur.
+    static let orbA = dyn(light: NSColor(hex: 0x86AEFF, alpha: 0.60),
+                          dark: NSColor(hex: 0x2E4070, alpha: 0.80))
+    static let orbB = dyn(light: NSColor(hex: 0x7EDCD0, alpha: 0.55),
+                          dark: NSColor(hex: 0x1D5B60, alpha: 0.65))
+    static let orbC = dyn(light: NSColor(hex: 0xC9B8F5, alpha: 0.50),
+                          dark: NSColor(hex: 0x45336E, alpha: 0.60))
+    static let glassEdgeTop = dyn(light: NSColor.white.withAlphaComponent(0.95),
+                                  dark: NSColor.white.withAlphaComponent(0.35))
+    static let glassEdgeBottom = dyn(light: NSColor.white.withAlphaComponent(0.30),
+                                     dark: NSColor.white.withAlphaComponent(0.08))
+    static let sheen = dyn(light: NSColor.white.withAlphaComponent(0.35),
+                           dark: NSColor.white.withAlphaComponent(0.10))
+    static let cardShadow = dyn(light: NSColor.black.withAlphaComponent(0.13),
+                                dark: NSColor.black.withAlphaComponent(0.50))
 
     // Neutral overlays (bars, pill containers, gauge tracks, gridlines)
     static let fillSubtle = dyn(light: NSColor.black.withAlphaComponent(0.05),
