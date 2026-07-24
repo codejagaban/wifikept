@@ -1,12 +1,35 @@
 import SwiftUI
 import Charts
 
+enum UsageChartStyle: String, CaseIterable, Identifiable {
+    case bar
+    case line
+    var id: String { rawValue }
+    var icon: String {
+        switch self {
+        case .bar: return "chart.bar.fill"
+        case .line: return "chart.xyaxis.line"
+        }
+    }
+    var help: String {
+        switch self {
+        case .bar: return "Bar chart"
+        case .line: return "Line graph"
+        }
+    }
+}
+
 struct UsageView: View {
     @EnvironmentObject var app: AppState
+    @AppStorage("usage.chartStyle") private var chartStyleRaw = UsageChartStyle.bar.rawValue
     @State private var range: UsageRange = .week
     @State private var totals = UsageTotals()
     @State private var series: [UsageBucket] = []
     @State private var hoverDate: Date?
+
+    private var chartStyle: UsageChartStyle {
+        UsageChartStyle(rawValue: chartStyleRaw) ?? .bar
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -72,11 +95,12 @@ struct UsageView: View {
 
     private var chartCard: some View {
         VStack(spacing: 16) {
-            HStack {
+            HStack(spacing: 12) {
                 Text("Data moved")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
+                stylePicker
                 PillPicker(options: UsageRange.allCases.map { ($0, $0.rawValue) }, selection: $range)
             }
             if series.isEmpty {
@@ -112,17 +136,68 @@ struct UsageView: View {
         .card(padding: 20)
     }
 
+    private var stylePicker: some View {
+        HStack(spacing: 2) {
+            ForEach(UsageChartStyle.allCases) { style in
+                Button {
+                    withAnimation(.smooth(duration: 0.3)) { chartStyleRaw = style.rawValue }
+                } label: {
+                    Image(systemName: style.icon)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(chartStyle == style ? Theme.textPrimary : Theme.textTertiary)
+                        .frame(width: 30, height: 24)
+                        .background(
+                            RoundedRectangle(cornerRadius: 7)
+                                .fill(chartStyle == style ? Theme.fillSelected : Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
+                .help(style.help)
+            }
+        }
+        .padding(3)
+        .background(RoundedRectangle(cornerRadius: 9).fill(Theme.fillSubtle))
+    }
+
     private var chart: some View {
         Chart {
             ForEach(series) { b in
-                BarMark(x: .value("Date", b.date, unit: barUnit),
-                        y: .value("Bytes", Double(b.rx)))
-                    .foregroundStyle(Theme.blue)
-                    .cornerRadius(3)
-                BarMark(x: .value("Date", b.date, unit: barUnit),
-                        y: .value("Bytes", Double(b.tx)))
-                    .foregroundStyle(Theme.green)
-                    .cornerRadius(3)
+                switch chartStyle {
+                case .bar:
+                    BarMark(x: .value("Date", b.date, unit: barUnit),
+                            y: .value("Bytes", Double(b.rx)))
+                        .foregroundStyle(Theme.blue)
+                        .cornerRadius(3)
+                    BarMark(x: .value("Date", b.date, unit: barUnit),
+                            y: .value("Bytes", Double(b.tx)))
+                        .foregroundStyle(Theme.green)
+                        .cornerRadius(3)
+                case .line:
+                    AreaMark(x: .value("Date", b.date, unit: barUnit),
+                             y: .value("Bytes", Double(b.rx)),
+                             series: .value("Series", "Down"))
+                        .foregroundStyle(LinearGradient(colors: [Theme.blue.opacity(0.30), .clear],
+                                                        startPoint: .top, endPoint: .bottom))
+                        .interpolationMethod(.monotone)
+                    LineMark(x: .value("Date", b.date, unit: barUnit),
+                             y: .value("Bytes", Double(b.rx)),
+                             series: .value("Series", "Down"))
+                        .foregroundStyle(Theme.blue)
+                        .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                        .interpolationMethod(.monotone)
+                        .symbol {
+                            Circle().fill(Theme.blue).frame(width: 6, height: 6)
+                        }
+                    LineMark(x: .value("Date", b.date, unit: barUnit),
+                             y: .value("Bytes", Double(b.tx)),
+                             series: .value("Series", "Up"))
+                        .foregroundStyle(Theme.green)
+                        .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                        .interpolationMethod(.monotone)
+                        .symbol {
+                            Circle().fill(Theme.green).frame(width: 6, height: 6)
+                        }
+                }
             }
             if let hoverDate, let bucket = nearestBucket(to: hoverDate) {
                 RuleMark(x: .value("Date", bucket.date, unit: barUnit))
