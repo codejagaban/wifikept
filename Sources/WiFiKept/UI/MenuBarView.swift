@@ -10,6 +10,19 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
     case upload = "Upload B/s"
     case usageToday = "Data used today"
     var id: String { rawValue }
+
+    /// Symbol shown in the menu bar (and the Settings picker) for this metric.
+    var icon: String {
+        switch self {
+        case .iconOnly, .quality: return "wifi"
+        case .rssi: return "antenna.radiowaves.left.and.right"
+        case .linkRate: return "gauge.with.needle"
+        case .latency: return "clock"
+        case .download: return "arrow.down.circle"
+        case .upload: return "arrow.up.circle"
+        case .usageToday: return "chart.bar.fill"
+        }
+    }
 }
 
 struct MenuBarLabel: View {
@@ -19,7 +32,7 @@ struct MenuBarLabel: View {
     var body: some View {
         let metric = MenuBarMetric(rawValue: metricRaw) ?? .quality
         HStack(spacing: 4) {
-            Image(systemName: app.snap.connected ? "wifi" : "wifi.slash")
+            Image(systemName: app.snap.connected ? metric.icon : "wifi.slash")
             if let text = labelText(metric) {
                 Text(text)
             }

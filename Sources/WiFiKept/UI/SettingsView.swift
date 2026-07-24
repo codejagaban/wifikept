@@ -47,9 +47,9 @@ struct SettingsView: View {
             }
 
             Section("Menu bar") {
-                Picker("Show next to the Wi-Fi icon", selection: $metricRaw) {
+                Picker("Menu bar shows", selection: $metricRaw) {
                     ForEach(MenuBarMetric.allCases) { m in
-                        Text(m.rawValue).tag(m.rawValue)
+                        Label(m.rawValue, systemImage: m.icon).tag(m.rawValue)
                     }
                 }
                 .pickerStyle(.menu)
