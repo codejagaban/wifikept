@@ -116,6 +116,21 @@ final class Database {
         }
     }
 
+    /// All-time totals recorded while connected to one specific network.
+    func networkAllTime(network: String) -> (rx: Int64, tx: Int64) {
+        q.sync {
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "SELECT COALESCE(SUM(rx),0), COALESCE(SUM(tx),0) FROM usage WHERE network = ?", -1, &stmt, nil)
+            sqlite3_bind_text(stmt, 1, network, -1, SQLITE_TRANSIENT)
+            var result: (Int64, Int64) = (0, 0)
+            if sqlite3_step(stmt) == SQLITE_ROW {
+                result = (sqlite3_column_int64(stmt, 0), sqlite3_column_int64(stmt, 1))
+            }
+            sqlite3_finalize(stmt)
+            return result
+        }
+    }
+
     func usageTotal(from: Date?, to: Date? = nil) -> (rx: Int64, tx: Int64) {
         q.sync {
             var stmt: OpaquePointer?

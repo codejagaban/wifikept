@@ -221,6 +221,17 @@ final class AppState: ObservableObject {
         return snap.connected ? "Wi-Fi" : "Wired / Other"
     }
 
+    /// All-time usage on the network we're connected to right now.
+    func currentNetworkAllTime() -> (network: String, rx: Int64, tx: Int64)? {
+        guard snap.connected else { return nil }
+        let label = currentNetworkLabel
+        var t = db.networkAllTime(network: label)
+        // Bytes accumulated since the last flush belong to this network too.
+        t.rx += Int64(pendingRx)
+        t.tx += Int64(pendingTx)
+        return (label, t.rx, t.tx)
+    }
+
     /// Usage grouped by network for the selected range.
     func networkTotals(range: UsageRange, limit: Int = 6) -> [(network: String?, rx: Int64, tx: Int64)] {
         db.networkTotals(from: usageRangeStart(range), limit: limit)
