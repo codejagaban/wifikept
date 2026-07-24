@@ -16,6 +16,12 @@ let package = Package(
                 .linkedFramework("SystemConfiguration"),
                 .linkedLibrary("sqlite3")
             ]
+        ),
+        .testTarget(
+            name: "WiFiKeptTests",
+            dependencies: ["WiFiKept"],
+            path: "Tests/WiFiKeptTests",
+            swiftSettings: [.swiftLanguageMode(.v5)]
         )
     ]
 )
