@@ -199,6 +199,6 @@ struct MenuBarView: View {
 /// Small frosted panel used by the popover cells and buttons.
 @ViewBuilder
 func glassShape(_ shape: some InsettableShape) -> some View {
-    shape.fill(Theme.card)
+    shape.fill(Theme.cardTranslucent)
         .overlay(shape.strokeBorder(Theme.stroke, lineWidth: 1))
 }

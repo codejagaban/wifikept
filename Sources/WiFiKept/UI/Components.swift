@@ -11,7 +11,7 @@ struct GlassBackdrop: View {
 /// Native translucent backing (blurs whatever is behind the window) —
 /// used by the menu bar popover so it looks like Control Center.
 struct VisualEffectBackground: NSViewRepresentable {
-    var material: NSVisualEffectView.Material = .popover
+    var material: NSVisualEffectView.Material = .hudWindow
 
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
