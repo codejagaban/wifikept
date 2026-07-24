@@ -1,6 +1,6 @@
 # WiFiKept
 
-A native macOS Wi-Fi monitor inspired by [Wifilicious](https://wifilicious.app), with one big addition: **data usage tracking** — how much you download/upload over Wi-Fi today, this week, this month, and all time.
+A native macOS Wi-Fi monitor inspired by [Wifilicious](https://wifilicious.app), with one big addition: **data usage tracking** — how much this Mac downloads/uploads today, this week, this month, and all time, across Wi-Fi, Ethernet and adapters.
 
 Everything is computed and stored locally. The only network traffic the app originates is the speed test itself (Cloudflare).
 
@@ -35,3 +35,11 @@ Requires Xcode 26+ on macOS 26+. The app is assembled from a Swift Package (no `
 Samples live in `~/Library/Application Support/WiFiKept/store.sqlite`:
 - `usage` — one row per minute of rx/tx byte deltas (kept forever; a year is a few MB)
 - `trend` — one row per 30 s of signal/latency/throughput readings (pruned after 90 days)
+- `counter_state` — last absolute interface counters, used to credit usage that
+  happened while the app was closed (same boot session only)
+
+Usage counts every physical interface (`en*`); virtual interfaces (VPN `utun*`,
+AirDrop `awdl0`, loopback) are excluded so nothing is double-counted. Tracking
+can't see anything before the app was first installed, and a reboot resets the
+kernel counters, so any gap that spans a reboot is lost — keep **Launch at
+login** on for complete totals.

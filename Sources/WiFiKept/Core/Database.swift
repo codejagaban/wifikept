@@ -40,6 +40,10 @@ final class Database {
                     ts INTEGER PRIMARY KEY, rssi INTEGER, noise INTEGER, txrate REAL,
                     latency REAL, rxbps REAL, txbps REAL, channel INTEGER)
                 """)
+            exec("""
+                CREATE TABLE IF NOT EXISTS counter_state(
+                    iface TEXT PRIMARY KEY, boot INTEGER, rx INTEGER, tx INTEGER, seen INTEGER)
+                """)
         }
     }
 
@@ -109,6 +113,48 @@ final class Database {
             }
             sqlite3_finalize(stmt)
             return result
+        }
+    }
+
+    // MARK: - Counter state (for crediting usage while the app was closed)
+
+    struct CounterState {
+        var boot: Int64
+        var rx: Int64
+        var tx: Int64
+        var seen: Int64
+    }
+
+    func loadCounterStates() -> [String: CounterState] {
+        q.sync {
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "SELECT iface, boot, rx, tx, seen FROM counter_state", -1, &stmt, nil)
+            var result: [String: CounterState] = [:]
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                let iface = String(cString: sqlite3_column_text(stmt, 0))
+                result[iface] = CounterState(boot: sqlite3_column_int64(stmt, 1),
+                                             rx: sqlite3_column_int64(stmt, 2),
+                                             tx: sqlite3_column_int64(stmt, 3),
+                                             seen: sqlite3_column_int64(stmt, 4))
+            }
+            sqlite3_finalize(stmt)
+            return result
+        }
+    }
+
+    func saveCounterState(iface: String, boot: Int64, rx: Int64, tx: Int64, seen: Int64) {
+        q.sync {
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, """
+                INSERT OR REPLACE INTO counter_state(iface, boot, rx, tx, seen) VALUES(?,?,?,?,?)
+                """, -1, &stmt, nil)
+            sqlite3_bind_text(stmt, 1, iface, -1, SQLITE_TRANSIENT)
+            sqlite3_bind_int64(stmt, 2, boot)
+            sqlite3_bind_int64(stmt, 3, rx)
+            sqlite3_bind_int64(stmt, 4, tx)
+            sqlite3_bind_int64(stmt, 5, seen)
+            sqlite3_step(stmt)
+            sqlite3_finalize(stmt)
         }
     }
 

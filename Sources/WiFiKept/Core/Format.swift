@@ -1,10 +1,11 @@
 import Foundation
 
 enum Fmt {
-    /// "4.2 GB", "312 MB"
+    /// "4.2 GB", "312 MB" — decimal units (1 GB = 10⁹), matching how macOS,
+    /// routers and ISPs count.
     static func bytes(_ v: Int64) -> String {
         let f = ByteCountFormatter()
-        f.countStyle = .binary
+        f.countStyle = .file
         f.allowsNonnumericFormatting = false
         return f.string(fromByteCount: v)
     }

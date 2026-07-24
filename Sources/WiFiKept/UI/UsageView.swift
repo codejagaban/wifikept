@@ -217,8 +217,8 @@ struct UsageView: View {
                        title: "Sending", value: Fmt.bytesPerSec(app.txBps),
                        detail: "live")
             MetricCard(icon: "internaldrive.fill", iconColor: Theme.purple,
-                       title: "Stored locally", value: "0 bytes uploaded",
-                       detail: "every sample stays on this Mac")
+                       title: "Coverage", value: "All interfaces",
+                       detail: "Wi-Fi, Ethernet & adapters")
         }
     }
 

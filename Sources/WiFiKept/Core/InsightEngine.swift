@@ -73,7 +73,7 @@ enum FallbackInsight {
     }
 
     static func usage(today: Int64, week: Int64, month: Int64) -> String {
-        "You've moved \(Fmt.bytes(today)) today, \(Fmt.bytes(week)) this week and \(Fmt.bytes(month)) this month over Wi-Fi."
+        "You've moved \(Fmt.bytes(today)) today, \(Fmt.bytes(week)) this week and \(Fmt.bytes(month)) this month on this Mac."
     }
 
     static func details(_ s: WiFiSnapshot) -> String {

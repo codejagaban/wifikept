@@ -51,6 +51,9 @@ final class AppState: ObservableObject {
     private var pendingRx: UInt64 = 0
     private var pendingTx: UInt64 = 0
     private var lastFlush = Date()
+    // Latest absolute counters (main-actor copy) for counter_state persistence.
+    private var latestCounters: [String: InterfaceCounters] = [:]
+    private let bootTime = InterfaceStats.bootTime()
     // Throughput averaging for trend rows.
     private var trendRxAccum: Double = 0
     private var trendTxAccum: Double = 0
@@ -63,6 +66,7 @@ final class AppState: ObservableObject {
         db = Database(path: dir.appendingPathComponent("store.sqlite").path)
         db.pruneTrend(before: Date().addingTimeInterval(-90 * 86_400))
 
+        reconcileOfflineUsage()
         snap = wifi.snapshot()
         startTimers()
         Task { await self.measureLatency() }
@@ -88,10 +92,11 @@ final class AppState: ObservableObject {
 
     private nonisolated func fastTick() {
         let snapshot = wifi.snapshot()
-        let sample = sampler.sample(interface: snapshot.interfaceName)
+        let sample = sampler.sample()
         Task { @MainActor in
             self.snap = snapshot
             if let s = sample {
+                self.latestCounters = s.counters
                 // Light smoothing so the live numbers don't jitter.
                 self.rxBps = self.rxBps * 0.3 + s.rxPerSec * 0.7
                 self.txBps = self.txBps * 0.3 + s.txPerSec * 0.7
@@ -132,12 +137,59 @@ final class AppState: ObservableObject {
     }
 
     func flushUsage() {
-        guard pendingRx > 0 || pendingTx > 0 else { return }
-        db.addUsage(ts: Date(), rx: Int64(pendingRx), tx: Int64(pendingTx))
-        pendingRx = 0
-        pendingTx = 0
+        if pendingRx > 0 || pendingTx > 0 {
+            db.addUsage(ts: Date(), rx: Int64(pendingRx), tx: Int64(pendingTx))
+            pendingRx = 0
+            pendingTx = 0
+        }
+        // Persist absolute counters so a relaunch can credit whatever moved
+        // while the app was closed (same boot only — counters reset on reboot).
+        let now = Int64(Date().timeIntervalSince1970)
+        for (iface, c) in latestCounters {
+            db.saveCounterState(iface: iface, boot: bootTime,
+                                rx: Int64(bitPattern: c.rx), tx: Int64(bitPattern: c.tx), seen: now)
+        }
         lastFlush = Date()
         usageStamp += 1
+    }
+
+    /// On launch: interface counters kept counting while the app was closed.
+    /// If we're in the same boot session and the counters only moved forward,
+    /// credit the difference, spread evenly across the offline window.
+    private func reconcileOfflineUsage() {
+        let current = InterfaceStats.readAll()
+        guard !current.isEmpty else { return }
+        let stored = db.loadCounterStates()
+        let now = Date()
+        for (iface, cur) in current {
+            guard let s = stored[iface], s.boot == bootTime else { continue }
+            let curRx = Int64(bitPattern: cur.rx)
+            let curTx = Int64(bitPattern: cur.tx)
+            guard curRx >= s.rx, curTx >= s.tx else { continue }
+            let from = Date(timeIntervalSince1970: Double(s.seen))
+            guard now.timeIntervalSince(from) > 5 else { continue }
+            creditGap(rx: curRx - s.rx, tx: curTx - s.tx, from: from, to: now)
+        }
+        let ts = Int64(now.timeIntervalSince1970)
+        for (iface, c) in current {
+            db.saveCounterState(iface: iface, boot: bootTime,
+                                rx: Int64(bitPattern: c.rx), tx: Int64(bitPattern: c.tx), seen: ts)
+        }
+        latestCounters = current
+    }
+
+    /// Spread an offline delta across hourly chunks so day/week boundaries
+    /// still land roughly right.
+    private func creditGap(rx: Int64, tx: Int64, from: Date, to: Date) {
+        guard rx > 0 || tx > 0 else { return }
+        let span = to.timeIntervalSince(from)
+        let chunks = max(1, min(Int(span / 3600), 24 * 7))
+        let step = span / Double(chunks)
+        let n = Int64(chunks)
+        for i in 0..<chunks {
+            let ts = from.addingTimeInterval(step * (Double(i) + 0.5))
+            db.addUsage(ts: ts, rx: rx / n, tx: tx / n)
+        }
     }
 
     // MARK: - Usage queries
