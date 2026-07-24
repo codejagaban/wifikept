@@ -24,6 +24,9 @@ final class SpeedTester: ObservableObject {
 
     @Published private(set) var phase: Phase = .idle
     @Published private(set) var liveMbps: Double = 0     // updates while a transfer runs
+    /// Download figure held while the upload phase runs, so the download
+    /// gauge doesn't snap back to the previous result mid-test.
+    @Published private(set) var interimDown: Double?
     @Published private(set) var result: Result?
 
     static let cooldown: TimeInterval = 60
@@ -72,7 +75,9 @@ final class SpeedTester: ObservableObject {
 
         phase = .download
         liveMbps = 0
+        interimDown = nil
         let down = await measure(direction: .download)
+        interimDown = down
 
         phase = .upload
         liveMbps = 0

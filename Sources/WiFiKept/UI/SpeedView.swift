@@ -2,11 +2,12 @@ import SwiftUI
 
 struct SpeedView: View {
     @EnvironmentObject var app: AppState
+    // Observed directly so the gauges repaint on every 100 ms live update,
+    // not just when AppState happens to publish.
+    @ObservedObject private var tester = AppState.shared.speed
     @State private var now = Date()
 
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
-    private var tester: SpeedTester { app.speed }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -70,8 +71,11 @@ struct SpeedView: View {
     }
 
     private var displayDown: Double? {
-        if tester.phase == .download { return tester.liveMbps }
-        return tester.result?.downloadMbps
+        switch tester.phase {
+        case .download: return tester.liveMbps
+        case .upload: return tester.interimDown ?? tester.result?.downloadMbps
+        default: return tester.result?.downloadMbps
+        }
     }
 
     private var displayUp: Double? {

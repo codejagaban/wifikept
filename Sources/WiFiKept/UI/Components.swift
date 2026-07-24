@@ -84,7 +84,7 @@ struct ArcGauge: View {
                 .trim(from: 0, to: 0.75 * clamped)
                 .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(135))
-                .animation(.easeOut(duration: 0.6), value: clamped)
+                .animation(.smooth(duration: 0.45), value: clamped)
         }
         .frame(width: size, height: size)
     }
