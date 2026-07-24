@@ -1,5 +1,7 @@
 #!/bin/zsh
-# Builds WiFiKept.app into ./build. Usage: ./build.sh [--run]
+# Builds WiFiKept.app into ./build. Usage: ./build.sh [--run | --install]
+#   --run      launch the freshly built app from ./build
+#   --install  copy it to /Applications and launch from there
 set -e
 cd "$(dirname "$0")"
 
@@ -18,4 +20,11 @@ codesign --force --sign - "$APP"
 echo "Built $APP"
 if [[ "$1" == "--run" ]]; then
     open "$APP"
+elif [[ "$1" == "--install" ]]; then
+    osascript -e 'quit app "WiFiKept"' 2>/dev/null
+    sleep 1
+    rm -rf /Applications/WiFiKept.app
+    cp -R "$APP" /Applications/WiFiKept.app
+    echo "Installed /Applications/WiFiKept.app"
+    open /Applications/WiFiKept.app
 fi
