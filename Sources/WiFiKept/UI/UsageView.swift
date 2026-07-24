@@ -524,13 +524,8 @@ struct UsageView: View {
 
     @ViewBuilder
     private func appIcon(for name: String) -> some View {
-        if let running = NSWorkspace.shared.runningApplications.first(where: { $0.localizedName == name }),
-           let icon = running.icon {
+        if let icon = AppIconCache.icon(for: name) {
             Image(nsImage: icon)
-                .resizable()
-                .frame(width: 24, height: 24)
-        } else if FileManager.default.fileExists(atPath: "/Applications/\(name).app") {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: "/Applications/\(name).app"))
                 .resizable()
                 .frame(width: 24, height: 24)
         } else {
@@ -561,5 +556,25 @@ struct UsageView: View {
     private var usageContext: String {
         let t = totals
         return "Wi-Fi data usage — today: \(Fmt.bytes(t.today.rx)) down / \(Fmt.bytes(t.today.tx)) up; this week: \(Fmt.bytes(t.week.rx)) down / \(Fmt.bytes(t.week.tx)) up; this month: \(Fmt.bytes(t.month.rx)) down / \(Fmt.bytes(t.month.tx)) up; all time: \(Fmt.bytes(t.allTime.rx + t.allTime.tx)) total."
+    }
+}
+
+
+/// Icons are looked up once per app name, not on every render.
+@MainActor
+private enum AppIconCache {
+    private static var cache: [String: NSImage?] = [:]
+
+    static func icon(for name: String) -> NSImage? {
+        if let hit = cache[name] { return hit }
+        var image: NSImage?
+        if let running = NSWorkspace.shared.runningApplications
+            .first(where: { $0.localizedName == name }) {
+            image = running.icon
+        } else if FileManager.default.fileExists(atPath: "/Applications/\(name).app") {
+            image = NSWorkspace.shared.icon(forFile: "/Applications/\(name).app")
+        }
+        cache[name] = image
+        return image
     }
 }

@@ -148,6 +148,72 @@ final class Database {
         }
     }
 
+    /// Roll rows older than the cutoff into one row per (local day, network).
+    /// Charts beyond 7 days already display daily buckets, so nothing visible
+    /// changes — the table just stops growing without bound.
+    func compactUsage(olderThan cutoff: Date) {
+        q.sync {
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "SELECT ts, rx, tx, network FROM usage WHERE ts < ?", -1, &stmt, nil)
+            sqlite3_bind_int64(stmt, 1, Int64(cutoff.timeIntervalSince1970))
+            var rows: [(ts: Int64, rx: Int64, tx: Int64, network: String?)] = []
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                let network = sqlite3_column_type(stmt, 3) == SQLITE_NULL
+                    ? nil : String(cString: sqlite3_column_text(stmt, 3))
+                rows.append((sqlite3_column_int64(stmt, 0), sqlite3_column_int64(stmt, 1),
+                             sqlite3_column_int64(stmt, 2), network))
+            }
+            sqlite3_finalize(stmt)
+            // Already compact (≤ a handful of rows per day) — skip the rewrite.
+            guard rows.count > 200 else { return }
+
+            let cal = Calendar.current
+            var buckets: [String: (ts: Int64, rx: Int64, tx: Int64, network: String?)] = [:]
+            var nextOffset: [Int64: Int64] = [:]
+            for r in rows {
+                let dayStart = Int64(cal.startOfDay(for: Date(timeIntervalSince1970: Double(r.ts))).timeIntervalSince1970)
+                let key = "\(dayStart)|\(r.network ?? "\u{0}")"
+                if var b = buckets[key] {
+                    b.rx += r.rx
+                    b.tx += r.tx
+                    buckets[key] = b
+                } else {
+                    // Noon anchor, offset by one second per network so the
+                    // ts PRIMARY KEY stays unique within a day.
+                    let noon = dayStart + 43_200
+                    let offset = nextOffset[noon] ?? 0
+                    nextOffset[noon] = offset + 1
+                    buckets[key] = (noon + offset, r.rx, r.tx, r.network)
+                }
+            }
+
+            exec("BEGIN")
+            sqlite3_prepare_v2(db, "DELETE FROM usage WHERE ts < ?", -1, &stmt, nil)
+            sqlite3_bind_int64(stmt, 1, Int64(cutoff.timeIntervalSince1970))
+            sqlite3_step(stmt)
+            sqlite3_finalize(stmt)
+            for b in buckets.values {
+                sqlite3_prepare_v2(db, "INSERT OR REPLACE INTO usage(ts, rx, tx, network) VALUES(?,?,?,?)", -1, &stmt, nil)
+                sqlite3_bind_int64(stmt, 1, b.ts)
+                sqlite3_bind_int64(stmt, 2, b.rx)
+                sqlite3_bind_int64(stmt, 3, b.tx)
+                if let network = b.network {
+                    sqlite3_bind_text(stmt, 4, network, -1, SQLITE_TRANSIENT)
+                } else {
+                    sqlite3_bind_null(stmt, 4)
+                }
+                sqlite3_step(stmt)
+                sqlite3_finalize(stmt)
+            }
+            exec("COMMIT")
+        }
+    }
+
+    /// Flush the WAL sidecar back into the main database file.
+    func checkpoint() {
+        q.sync { exec("PRAGMA wal_checkpoint(TRUNCATE)") }
+    }
+
     func firstUsageDate() -> Date? {
         q.sync {
             var stmt: OpaquePointer?
@@ -298,14 +364,33 @@ final class Database {
         }
     }
 
-    func trendRows(from: Date) -> [TrendRow] {
+    func trendRows(from: Date, maxPoints: Int = 700) -> [TrendRow] {
         q.sync {
             var stmt: OpaquePointer?
-            sqlite3_prepare_v2(db, """
-                SELECT ts, rssi, noise, txrate, latency, rxbps, txbps, channel
-                FROM trend WHERE ts >= ? ORDER BY ts
-                """, -1, &stmt, nil)
+            sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM trend WHERE ts >= ?", -1, &stmt, nil)
             sqlite3_bind_int64(stmt, 1, Int64(from.timeIntervalSince1970))
+            var count = 0
+            if sqlite3_step(stmt) == SQLITE_ROW { count = Int(sqlite3_column_int(stmt, 0)) }
+            sqlite3_finalize(stmt)
+            let stride = max(1, count / maxPoints)
+
+            if stride == 1 {
+                sqlite3_prepare_v2(db, """
+                    SELECT ts, rssi, noise, txrate, latency, rxbps, txbps, channel
+                    FROM trend WHERE ts >= ? ORDER BY ts
+                    """, -1, &stmt, nil)
+                sqlite3_bind_int64(stmt, 1, Int64(from.timeIntervalSince1970))
+            } else {
+                // Downsample in SQL so long ranges never ship every row.
+                sqlite3_prepare_v2(db, """
+                    SELECT ts, rssi, noise, txrate, latency, rxbps, txbps, channel FROM (
+                        SELECT *, ROW_NUMBER() OVER (ORDER BY ts) AS rn
+                        FROM trend WHERE ts >= ?
+                    ) WHERE rn % ? = 0 ORDER BY ts
+                    """, -1, &stmt, nil)
+                sqlite3_bind_int64(stmt, 1, Int64(from.timeIntervalSince1970))
+                sqlite3_bind_int(stmt, 2, Int32(stride))
+            }
             var rows: [TrendRow] = []
             while sqlite3_step(stmt) == SQLITE_ROW {
                 rows.append(TrendRow(

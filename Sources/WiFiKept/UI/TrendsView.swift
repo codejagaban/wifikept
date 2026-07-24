@@ -79,19 +79,13 @@ struct TrendsView: View {
     }
 
     private func load() {
+        // Downsampling happens in SQL now — only ~700 rows ever leave the DB.
         if let h = range.hours {
-            rows = downsample(app.trendRows(hours: h))
+            rows = app.trendRows(hours: h)
         } else {
-            rows = downsample(app.allTrendRows())
+            rows = app.allTrendRows()
         }
         speedRows = app.speedRows(hours: range.hours)
-    }
-
-    /// Cap what the chart draws so long ranges stay fluid.
-    private func downsample(_ input: [TrendRow], to target: Int = 700) -> [TrendRow] {
-        guard input.count > target else { return input }
-        let stride = Double(input.count) / Double(target)
-        return (0..<target).map { input[Int(Double($0) * stride)] }
     }
 
     private var metricPicker: some View {

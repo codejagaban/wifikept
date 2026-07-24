@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Don't lose the last minute of usage accounting.
         MainActor.assumeIsolated {
             AppState.shared.flushUsage()
+            AppState.shared.db.checkpoint()
         }
     }
 

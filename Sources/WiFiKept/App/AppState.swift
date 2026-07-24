@@ -67,6 +67,8 @@ final class AppState: ObservableObject {
     // Latest absolute counters (main-actor copy) for counter_state persistence.
     private var latestCounters: [String: InterfaceCounters] = [:]
     private let bootTime = InterfaceStats.bootTime()
+    // Usage totals cached at each flush so per-second UI reads cost nothing.
+    private var totalsCache = UsageTotals()
     // Throughput averaging for trend rows.
     private var trendRxAccum: Double = 0
     private var trendTxAccum: Double = 0
@@ -78,8 +80,10 @@ final class AppState: ObservableObject {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         db = Database(path: dir.appendingPathComponent("store.sqlite").path)
         db.pruneTrend(before: Date().addingTimeInterval(-90 * 86_400))
+        db.compactUsage(olderThan: Date().addingTimeInterval(-7 * 86_400))
 
         reconcileOfflineUsage()
+        refreshTotalsCache()
         snap = wifi.snapshot()
 
         speed.onResult = { [weak self] r in
@@ -154,6 +158,13 @@ final class AppState: ObservableObject {
         checkDataBudget()
         maybeRunScheduledSpeedTest()
         updateSamplingProfile()
+
+        // Compact fine-grained usage rows once a day.
+        let lastCompact = UserDefaults.standard.double(forKey: "usage.lastCompact")
+        if Date().timeIntervalSince1970 - lastCompact > 86_400 {
+            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "usage.lastCompact")
+            db.compactUsage(olderThan: Date().addingTimeInterval(-7 * 86_400))
+        }
     }
 
     /// Battery-aware sampling: on battery (and with no WiFiKept UI on
@@ -294,6 +305,7 @@ final class AppState: ObservableObject {
                                 rx: Int64(bitPattern: c.rx), tx: Int64(bitPattern: c.tx), seen: now)
         }
         lastFlush = Date()
+        refreshTotalsCache()
         usageStamp += 1
     }
 
@@ -338,7 +350,9 @@ final class AppState: ObservableObject {
 
     // MARK: - Usage queries
 
-    func usageTotals() -> UsageTotals {
+    /// Queried from the database only at flush time (every 30 s); the
+    /// per-second menu bar and popover reads come from this cache.
+    private func refreshTotalsCache() {
         let cal = Calendar.current
         let now = Date()
         var t = UsageTotals()
@@ -350,13 +364,18 @@ final class AppState: ObservableObject {
             t.month = db.usageTotal(from: month.start)
         }
         t.allTime = db.usageTotal(from: nil)
+        t.since = db.firstUsageDate()
+        totalsCache = t
+    }
+
+    func usageTotals() -> UsageTotals {
         // Un-flushed bytes count toward every bucket.
+        var t = totalsCache
         let pr = Int64(pendingRx), pt = Int64(pendingTx)
         t.today = (t.today.rx + pr, t.today.tx + pt)
         t.week = (t.week.rx + pr, t.week.tx + pt)
         t.month = (t.month.rx + pr, t.month.tx + pt)
         t.allTime = (t.allTime.rx + pr, t.allTime.tx + pt)
-        t.since = db.firstUsageDate()
         return t
     }
 
