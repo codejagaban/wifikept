@@ -32,6 +32,7 @@ struct SpeedView: View {
                 Text("Speed test runs 4 parallel Cloudflare streams for ~6 seconds each way, like fast.com. Data used scales with your speed (typically 100–300 MB per run). Results reflect your internet connection, not Wi-Fi signal strength.")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer()
             }
             .card(padding: 14)

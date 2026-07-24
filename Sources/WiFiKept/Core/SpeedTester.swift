@@ -37,10 +37,6 @@ final class SpeedTester: ObservableObject {
     private nonisolated static let streamCount = 4
     private nonisolated static let boxSeconds: Double = 6
     private nonisolated static let rampSeconds: Double = 1
-    // Cloudflare rejects __down requests of 100 MB+ with a 403; 90 MB is the
-    // biggest size that passes, and 4×90 MB outlasts the 6 s box on most links.
-    private nonisolated static let downloadBytesPerStream = 90_000_000
-    private nonisolated static let uploadBytesPerStream = 25_000_000
 
     var isRunning: Bool { phase != .idle && phase != .done }
 
@@ -104,26 +100,36 @@ final class SpeedTester: ObservableObject {
         let session = URLSession(configuration: config, delegate: meter, delegateQueue: nil)
         defer { session.invalidateAndCancel() }
 
-        switch direction {
-        case .download:
-            guard let url = URL(string: "https://speed.cloudflare.com/__down?bytes=\(Self.downloadBytesPerStream)") else { return 0 }
-            for _ in 0..<Self.streamCount {
+        // Moderate chunks, continuously refilled, instead of one huge request
+        // per stream: Cloudflare rate-limits large __down sizes once you've
+        // moved enough volume, and a refill keeps the pipe full either way.
+        // On a rejection we step down the ladder and keep going.
+        let chunkLadder = [25_000_000, 10_000_000, 5_000_000, 2_000_000, 1_000_000]
+        var ladderIndex = 0
+        var started = 0
+        let maxStarts = 80
+
+        func startTask() {
+            guard started < maxStarts else { return }
+            started += 1
+            let bytes = chunkLadder[ladderIndex]
+            switch direction {
+            case .download:
+                guard let url = URL(string: "https://speed.cloudflare.com/__down?bytes=\(bytes)") else { return }
                 session.dataTask(with: url).resume()
-            }
-        case .upload:
-            guard let url = URL(string: "https://speed.cloudflare.com/__up") else { return 0 }
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
-            // One shared immutable buffer; TLS payloads aren't compressed, so zeros are fine.
-            let payload = Data(count: Self.uploadBytesPerStream)
-            for _ in 0..<Self.streamCount {
-                session.uploadTask(with: request, from: payload).resume()
+            case .upload:
+                guard let url = URL(string: "https://speed.cloudflare.com/__up") else { return }
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
+                // Zeros are fine; TLS payloads aren't compressed.
+                session.uploadTask(with: request, from: Data(count: bytes)).resume()
             }
         }
 
-        // Sample cumulative bytes every 100 ms until the time box closes or
-        // every stream finishes.
+        for _ in 0..<Self.streamCount { startTask() }
+
+        // Sample cumulative bytes every 100 ms until the time box closes.
         let start = CFAbsoluteTimeGetCurrent()
         var samples: [(t: Double, bytes: Int64)] = [(0, 0)]
         while true {
@@ -131,6 +137,20 @@ final class SpeedTester: ObservableObject {
             let now = CFAbsoluteTimeGetCurrent() - start
             let bytes = meter.totalBytes
             samples.append((now, bytes))
+
+            // A rejected request (403/429) means the current chunk size is
+            // over the limit — drop down and carry on.
+            if meter.consumeRejection(), ladderIndex < chunkLadder.count - 1 {
+                ladderIndex += 1
+            }
+
+            // Keep the pipe full for the whole box.
+            if now < Self.boxSeconds - 0.3 {
+                let active = started - meter.completedTasks
+                if active < Self.streamCount {
+                    for _ in 0..<(Self.streamCount - active) { startTask() }
+                }
+            }
 
             // Live gauge: throughput over the trailing second.
             if let windowStart = samples.last(where: { $0.t <= now - 1 }) ?? samples.first,
@@ -140,7 +160,7 @@ final class SpeedTester: ObservableObject {
             }
 
             if now >= Self.boxSeconds { break }
-            if meter.completedTasks >= Self.streamCount { break }
+            if started >= maxStarts, meter.completedTasks >= started { break }
         }
 
         // Final figure: steady-state window, slow-start excluded.
@@ -162,6 +182,7 @@ private final class TransferMeter: NSObject, URLSessionDataDelegate, @unchecked 
     private var received: Int64 = 0
     private var sentPerTask: [Int: Int64] = [:]
     private var completed = 0
+    private var rejected = false
 
     var totalBytes: Int64 {
         lock.lock()
@@ -173,6 +194,26 @@ private final class TransferMeter: NSObject, URLSessionDataDelegate, @unchecked 
         lock.lock()
         defer { lock.unlock() }
         return completed
+    }
+
+    /// Returns true once per rejection burst, then resets.
+    func consumeRejection() -> Bool {
+        lock.lock()
+        defer { rejected = false; lock.unlock() }
+        return rejected
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask,
+                    didReceive response: URLResponse,
+                    completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+        if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+            lock.lock()
+            rejected = true
+            lock.unlock()
+            completionHandler(.cancel) // don't count an error body as throughput
+        } else {
+            completionHandler(.allow)
+        }
     }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
