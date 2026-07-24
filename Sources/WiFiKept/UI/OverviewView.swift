@@ -4,7 +4,6 @@ struct OverviewView: View {
     @EnvironmentObject var app: AppState
     @ObservedObject private var tester = AppState.shared.speed
     @State private var totals = UsageTotals()
-    @State private var netUsage: (network: String, rx: Int64, tx: Int64)?
 
     private var snap: WiFiSnapshot { app.snap }
 
@@ -35,9 +34,9 @@ struct OverviewView: View {
                            title: "Security", value: securityGrade,
                            detail: snap.security)
                 MetricCard(icon: "chart.pie.fill", iconColor: Theme.teal,
-                           title: "This Network",
-                           value: netUsage.map { Fmt.bytes($0.rx + $0.tx) } ?? "—",
-                           detail: "all-time here")
+                           title: "Total Usage",
+                           value: Fmt.bytes(totals.allTime.rx + totals.allTime.tx),
+                           detail: "all-time on this Mac")
             }
             HStack(spacing: 14) {
                 liveCard(icon: "arrow.down", chipColor: Theme.blue,
@@ -47,17 +46,8 @@ struct OverviewView: View {
             }
             connectionReport
         }
-        .onAppear {
-            totals = app.usageTotals()
-            netUsage = app.currentNetworkAllTime()
-        }
-        .onChange(of: app.usageStamp) {
-            totals = app.usageTotals()
-            netUsage = app.currentNetworkAllTime()
-        }
-        .onChange(of: snap.ssid) {
-            netUsage = app.currentNetworkAllTime()
-        }
+        .onAppear { totals = app.usageTotals() }
+        .onChange(of: app.usageStamp) { totals = app.usageTotals() }
     }
 
     // MARK: - Hero
