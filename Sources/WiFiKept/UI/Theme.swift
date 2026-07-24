@@ -35,8 +35,8 @@ enum Theme {
     static let card = dyn(light: 0xFFFFFF, dark: 0x161618)
     /// Semi-transparent card used in the menu bar popover so the
     /// behind-window blur shows through the tiles.
-    static let cardTranslucent = dyn(light: NSColor.white.withAlphaComponent(0.55),
-                                     dark: NSColor(hex: 0x1A1A1D, alpha: 0.55))
+    static let cardTranslucent = dyn(light: NSColor.white.withAlphaComponent(0.35),
+                                     dark: NSColor(hex: 0x1A1A1D, alpha: 0.35))
     static let cardElevated = dyn(light: 0xFFFFFF, dark: 0x1D1D20)
     static let stroke = dyn(light: NSColor.black.withAlphaComponent(0.08),
                             dark: NSColor.white.withAlphaComponent(0.06))
