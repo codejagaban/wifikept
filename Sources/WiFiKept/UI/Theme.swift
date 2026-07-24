@@ -84,6 +84,20 @@ enum Theme {
     static let indigo = dyn(light: 0x5856D6, dark: 0x5E5CE6)
 }
 
+extension Font {
+    /// JetBrains Mono (bundled) for all display numbers and identifiers.
+    static func mono(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        let name: String
+        switch weight {
+        case .bold, .heavy, .black: name = "JetBrainsMono-Bold"
+        case .semibold: name = "JetBrainsMono-SemiBold"
+        case .medium: name = "JetBrainsMono-Medium"
+        default: name = "JetBrainsMono-Regular"
+        }
+        return .custom(name, size: size)
+    }
+}
+
 /// User-selectable appearance, stored in AppStorage("appearance").
 enum AppearanceSetting: String, CaseIterable, Identifiable {
     case system = "System"

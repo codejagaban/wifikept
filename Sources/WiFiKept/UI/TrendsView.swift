@@ -221,7 +221,7 @@ struct TrendsView: View {
             ForEach(stats, id: \.0) { stat in
                 VStack(spacing: 4) {
                     Text(stat.1)
-                        .font(.system(size: 19, weight: .bold, design: .monospaced))
+                        .font(.mono(19, .bold))
                         .foregroundStyle(stat.2)
                     Text(stat.0)
                         .font(.system(size: 12))

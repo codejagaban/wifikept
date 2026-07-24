@@ -11,6 +11,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/WiFiKept "$APP/Contents/MacOS/WiFiKept"
 cp Support/Info.plist "$APP/Contents/Info.plist"
 [ -f Support/AppIcon.icns ] && cp Support/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+[ -d Support/Fonts ] && cp -R Support/Fonts "$APP/Contents/Resources/Fonts"
 
 codesign --force --sign - "$APP"
 

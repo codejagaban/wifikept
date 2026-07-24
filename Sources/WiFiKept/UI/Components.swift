@@ -53,7 +53,7 @@ struct MetricCard: View {
             }
             HStack(alignment: .lastTextBaseline) {
                 Text(value)
-                    .font(.system(size: 22, weight: .bold, design: .monospaced))
+                    .font(.mono(22, .bold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -124,7 +124,7 @@ struct MeterRow: View {
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Text(valueText)
-                    .font(.system(size: 15, weight: .bold, design: .monospaced))
+                    .font(.mono(15, .bold))
                     .foregroundStyle(Theme.textPrimary)
             }
             GeometryReader { geo in
@@ -157,7 +157,7 @@ struct InsightBox: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(title)
-                    .font(.system(size: 15, weight: .bold, design: .monospaced))
+                    .font(.mono(15, .bold))
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Image(systemName: "apple.intelligence")
@@ -264,7 +264,7 @@ struct CopyCard: View {
             }
             HStack(alignment: .lastTextBaseline) {
                 Text(value?.isEmpty == false ? value! : "—")
-                    .font(.system(size: 17, weight: .bold, design: .monospaced))
+                    .font(.mono(17, .bold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                     .truncationMode(.middle)

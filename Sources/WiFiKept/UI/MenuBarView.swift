@@ -108,7 +108,7 @@ struct MenuBarView: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(snap.ssid ?? (snap.connected ? "Wi-Fi" : "Not Connected"))
-                    .font(.system(size: 15, weight: .bold, design: .monospaced))
+                    .font(.mono(15, .bold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                 Text(snap.qualityRating)
@@ -118,7 +118,7 @@ struct MenuBarView: View {
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(snap.rssi) dBm")
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .font(.mono(13, .bold))
                     .foregroundStyle(Theme.textPrimary)
                 Text(snap.channel > 0 ? "Ch \(snap.channel) · \(snap.bandLabel)" : "—")
                     .font(.system(size: 11))
@@ -141,7 +141,7 @@ struct MenuBarView: View {
                     .foregroundStyle(Theme.textSecondary)
             }
             Text(value)
-                .font(.system(size: 15, weight: .bold, design: .monospaced))
+                .font(.mono(15, .bold))
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
