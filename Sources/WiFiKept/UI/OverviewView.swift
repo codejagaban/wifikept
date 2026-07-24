@@ -21,7 +21,7 @@ struct OverviewView: View {
                 heroCard
                 speedCard
             }
-            .frame(height: 200)
+            .frame(height: 212)
             HStack(spacing: 14) {
                 MetricCard(icon: "clock.fill", iconColor: Theme.orange,
                            title: "Latency",
@@ -160,7 +160,7 @@ struct OverviewView: View {
     // MARK: - Live activity
 
     private func liveCard(icon: String, chipColor: Color, title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 22) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 10, weight: .bold))
@@ -244,7 +244,7 @@ struct OverviewView: View {
                 reportRow(icon: "chart.bar.fill", color: Theme.teal, text: usageBullet)
             }
         }
-        .padding(18)
+        .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)

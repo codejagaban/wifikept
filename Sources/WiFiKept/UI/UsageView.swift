@@ -69,7 +69,7 @@ struct UsageView: View {
     }
 
     private func totalCard(title: String, pair: (rx: Int64, tx: Int64), color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(title.uppercased())
                 .font(.system(size: 11, weight: .semibold))
                 .kerning(1.1)
@@ -88,7 +88,7 @@ struct UsageView: View {
             .labelStyle(.titleAndIcon)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .card(padding: 16)
+        .card(padding: 20)
     }
 
     // MARK: - Chart

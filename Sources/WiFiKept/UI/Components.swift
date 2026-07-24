@@ -11,7 +11,7 @@ struct GlassBackdrop: View {
 // MARK: - Card chrome (frosted glass)
 
 struct CardStyle: ViewModifier {
-    var padding: CGFloat = 18
+    var padding: CGFloat = 22
     func body(content: Content) -> some View {
         content
             .padding(padding)
@@ -41,7 +41,7 @@ struct MetricCard: View {
     var monospacedValue = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 20) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 15, weight: .semibold))
@@ -66,7 +66,7 @@ struct MetricCard: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 76, alignment: .leading)
         .card()
     }
 }
@@ -171,7 +171,7 @@ struct InsightBox: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(18)
+        .padding(22)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(tint.opacity(0.08))
@@ -237,7 +237,7 @@ struct CopyCard: View {
     @State private var copied = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 20) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 14, weight: .semibold))
