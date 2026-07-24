@@ -76,16 +76,18 @@ enum Theme {
     static let textSecondary = dyn(light: 0x5C6572, dark: 0x9FA1A6)
     static let textTertiary = dyn(light: 0x8B93A1, dark: 0x6A6C71)
 
-    // Accents — Apple's system light/dark pairs so they read on both surfaces
-    static let green = dyn(light: 0x28CD41, dark: 0x32D74B)
-    static let blue = dyn(light: 0x007AFF, dark: 0x0A84FF)
-    static let orange = dyn(light: 0xFF9500, dark: 0xFF9F0A)
-    static let purple = dyn(light: 0xAF52DE, dark: 0xBF5AF2)
-    static let pink = dyn(light: 0xFF2D55, dark: 0xFF375F)
-    static let teal = dyn(light: 0x30B0C7, dark: 0x40C8E0)
-    static let yellow = dyn(light: 0xF5B800, dark: 0xFFD60A)
-    static let red = dyn(light: 0xFF3B30, dark: 0xFF453A)
-    static let indigo = dyn(light: 0x5856D6, dark: 0x5E5CE6)
+    // Accents — light variants darkened enough to read as TEXT on light
+    // surfaces (the bright system fills failed contrast there); dark
+    // variants stay vivid where they work.
+    static let green = dyn(light: 0x1E9E3C, dark: 0x32D74B)
+    static let blue = dyn(light: 0x0071E3, dark: 0x0A84FF)
+    static let orange = dyn(light: 0xC93400, dark: 0xFF9F0A)
+    static let purple = dyn(light: 0x8944AB, dark: 0xBF5AF2)
+    static let pink = dyn(light: 0xD30F45, dark: 0xFF375F)
+    static let teal = dyn(light: 0x0C817B, dark: 0x40C8E0)
+    static let yellow = dyn(light: 0xA05A00, dark: 0xD4B845)
+    static let red = dyn(light: 0xD70015, dark: 0xFF453A)
+    static let indigo = dyn(light: 0x4B4ACF, dark: 0x5E5CE6)
 }
 
 extension Font {
