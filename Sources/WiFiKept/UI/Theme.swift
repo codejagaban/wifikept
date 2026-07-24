@@ -80,14 +80,14 @@ enum Theme {
     // surfaces (the bright system fills failed contrast there); dark
     // variants stay vivid where they work.
     static let green = dyn(light: 0x23B14E, dark: 0x32D74B)
-    static let blue = dyn(light: 0x0071E3, dark: 0x0A84FF)
-    static let orange = dyn(light: 0xC93400, dark: 0xFF9F0A)
-    static let purple = dyn(light: 0x8944AB, dark: 0xBF5AF2)
-    static let pink = dyn(light: 0xD30F45, dark: 0xFF375F)
-    static let teal = dyn(light: 0x0C817B, dark: 0x40C8E0)
-    static let yellow = dyn(light: 0xA05A00, dark: 0xD4B845)
-    static let red = dyn(light: 0xD70015, dark: 0xFF453A)
-    static let indigo = dyn(light: 0x4B4ACF, dark: 0x5E5CE6)
+    static let blue = dyn(light: 0x007AFF, dark: 0x0A84FF)
+    static let orange = dyn(light: 0xE8710A, dark: 0xFF9F0A)
+    static let purple = dyn(light: 0x9F4FC9, dark: 0xBF5AF2)
+    static let pink = dyn(light: 0xE72652, dark: 0xFF375F)
+    static let teal = dyn(light: 0x1E98A1, dark: 0x40C8E0)
+    static let yellow = dyn(light: 0xBF8700, dark: 0xD4B845)
+    static let red = dyn(light: 0xE3352B, dark: 0xFF453A)
+    static let indigo = dyn(light: 0x5654DB, dark: 0x5E5CE6)
 
     /// Apple Intelligence-style gradient, used only on the AI glyph.
     static let aiGradient = LinearGradient(
