@@ -52,7 +52,7 @@ struct UsageView: View {
                 .kerning(1.1)
                 .foregroundStyle(Theme.textSecondary)
             Text(Fmt.bytes(pair.rx + pair.tx))
-                .font(.mono(24, .bold))
+                .font(.display(24, .bold))
                 .foregroundStyle(color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)

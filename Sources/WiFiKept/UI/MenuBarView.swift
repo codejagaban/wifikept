@@ -108,7 +108,7 @@ struct MenuBarView: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(snap.ssid ?? (snap.connected ? "Wi-Fi" : "Not Connected"))
-                    .font(.mono(15, .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                 Text(snap.qualityRating)
@@ -141,7 +141,7 @@ struct MenuBarView: View {
                     .foregroundStyle(Theme.textSecondary)
             }
             Text(value)
-                .font(.mono(15, .bold))
+                .font(.display(15, .bold))
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)

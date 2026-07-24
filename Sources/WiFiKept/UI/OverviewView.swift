@@ -55,7 +55,7 @@ struct OverviewView: View {
                          color: qualityColor, lineWidth: 11, size: 120)
                 VStack(spacing: 0) {
                     Text("\(snap.qualityPercent)")
-                        .font(.mono(32, .bold))
+                        .font(.display(32, .bold))
                         .foregroundStyle(qualityColor)
                     Text("%")
                         .font(.system(size: 12, weight: .medium))
@@ -145,7 +145,7 @@ struct OverviewView: View {
                 .frame(width: 21, height: 21)
                 .background(Circle().fill(color))
             Text(value)
-                .font(.mono(21, .bold))
+                .font(.display(21, .bold))
                 .foregroundStyle(Theme.textPrimary)
         }
     }
@@ -182,7 +182,7 @@ struct OverviewView: View {
             }
             HStack(alignment: .lastTextBaseline) {
                 Text(value)
-                    .font(.mono(23, .bold))
+                    .font(.display(23, .bold))
                     .foregroundStyle(Theme.textPrimary)
                     .contentTransition(.numericText())
                     .animation(.default, value: value)

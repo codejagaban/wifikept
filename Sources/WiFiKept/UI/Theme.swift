@@ -85,7 +85,8 @@ enum Theme {
 }
 
 extension Font {
-    /// JetBrains Mono (bundled) for all display numbers and identifiers.
+    /// JetBrains Mono (bundled) — identifiers where digit alignment matters
+    /// (BSSID, MAC, IPs, dBm readouts).
     static func mono(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
         let name: String
         switch weight {
@@ -93,6 +94,19 @@ extension Font {
         case .semibold: name = "JetBrainsMono-SemiBold"
         case .medium: name = "JetBrainsMono-Medium"
         default: name = "JetBrainsMono-Regular"
+        }
+        return .custom(name, size: size)
+    }
+
+    /// Bricolage Grotesque (bundled, 24pt optical cut) — the display face
+    /// carrying big numbers and values.
+    static func display(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        let name: String
+        switch weight {
+        case .bold, .heavy, .black: name = "BricolageGrotesque-24ptBold"
+        case .semibold: name = "BricolageGrotesque-24ptSemiBold"
+        case .medium: name = "BricolageGrotesque-24ptMedium"
+        default: name = "BricolageGrotesque-24pt"
         }
         return .custom(name, size: size)
     }
