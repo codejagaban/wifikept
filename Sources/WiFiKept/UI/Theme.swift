@@ -88,6 +88,11 @@ enum Theme {
     static let yellow = dyn(light: 0xA05A00, dark: 0xD4B845)
     static let red = dyn(light: 0xD70015, dark: 0xFF453A)
     static let indigo = dyn(light: 0x4B4ACF, dark: 0x5E5CE6)
+
+    /// Apple Intelligence-style gradient, used only on the AI glyph.
+    static let aiGradient = LinearGradient(
+        colors: [blue, purple, pink],
+        startPoint: .topLeading, endPoint: .bottomTrailing)
 }
 
 extension Font {

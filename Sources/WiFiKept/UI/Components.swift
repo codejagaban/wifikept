@@ -170,32 +170,25 @@ struct InsightBox: View {
     var tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(title)
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 8) {
                 Image(systemName: "apple.intelligence")
-                    .font(.system(size: 17))
-                    .foregroundStyle(tint)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.aiGradient)
+                Text(title.uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .kerning(1.1)
+                    .foregroundStyle(Theme.textSecondary)
             }
             Text(text)
-                .font(.system(size: 13))
-                .lineSpacing(3)
-                .foregroundStyle(Theme.textSecondary)
+                .font(.system(size: 13.5))
+                .lineSpacing(4)
+                .foregroundStyle(Theme.textPrimary.opacity(0.85))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(22)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(tint.opacity(0.08))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(tint.opacity(0.25), lineWidth: 1)
-                )
-        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
     }
 }
 

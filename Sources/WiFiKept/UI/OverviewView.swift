@@ -224,36 +224,30 @@ struct OverviewView: View {
     // MARK: - Connection report
 
     private var connectionReport: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("Connection Report")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 8) {
                 Image(systemName: "apple.intelligence")
-                    .font(.system(size: 17))
-                    .foregroundStyle(Theme.green)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.aiGradient)
+                Text("CONNECTION REPORT")
+                    .font(.system(size: 11, weight: .semibold))
+                    .kerning(1.1)
+                    .foregroundStyle(Theme.textSecondary)
             }
             Text(reportLead)
-                .font(.system(size: 13))
-                .foregroundStyle(Theme.textSecondary)
+                .font(.system(size: 13.5))
+                .lineSpacing(4)
+                .foregroundStyle(Theme.textPrimary.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
-            VStack(alignment: .leading, spacing: 10) {
+            Rectangle().fill(Theme.stroke).frame(height: 1)
+            VStack(alignment: .leading, spacing: 11) {
                 reportRow(icon: signalBullet.0, color: signalBullet.1, text: signalBullet.2)
-                reportRow(icon: "bolt.fill", color: Theme.green, text: speedBullet)
+                reportRow(icon: "bolt.fill", color: Theme.yellow, text: speedBullet)
                 reportRow(icon: "chart.bar.fill", color: Theme.teal, text: usageBullet)
             }
         }
-        .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Theme.green.opacity(0.07))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(Theme.green.opacity(0.22), lineWidth: 1)
-                )
-        )
+        .card()
     }
 
     private func reportRow(icon: String, color: Color, text: String) -> some View {
