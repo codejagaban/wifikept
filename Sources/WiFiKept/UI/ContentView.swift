@@ -34,7 +34,7 @@ struct MainWindow: View {
                     }
                 }
                 .id(tab)
-                .transition(.blurReplace)
+                .transition(.blurReplace.combined(with: .offset(y: 6)))
             }
         }
         .background(GlassBackdrop())
@@ -72,7 +72,7 @@ struct MainWindow: View {
         HStack(spacing: 2) {
             ForEach(MainTab.allCases) { t in
                 Button {
-                    withAnimation(.smooth(duration: 0.3)) { tab = t }
+                    withAnimation(.smooth(duration: 0.5, extraBounce: 0)) { tab = t }
                 } label: {
                     Text(t.rawValue)
                         .font(.system(size: 13, weight: tab == t ? .semibold : .regular))
