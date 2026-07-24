@@ -79,7 +79,7 @@ enum Theme {
     // Accents — light variants darkened enough to read as TEXT on light
     // surfaces (the bright system fills failed contrast there); dark
     // variants stay vivid where they work.
-    static let green = dyn(light: 0x1E9E3C, dark: 0x32D74B)
+    static let green = dyn(light: 0x23B14E, dark: 0x32D74B)
     static let blue = dyn(light: 0x0071E3, dark: 0x0A84FF)
     static let orange = dyn(light: 0xC93400, dark: 0xFF9F0A)
     static let purple = dyn(light: 0x8944AB, dark: 0xBF5AF2)
