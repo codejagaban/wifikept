@@ -5,6 +5,8 @@ struct SettingsView: View {
     @EnvironmentObject var app: AppState
     @AppStorage("menubar.metric") private var metricRaw = MenuBarMetric.quality.rawValue
     @AppStorage("appearance") private var appearanceRaw = AppearanceSetting.system.rawValue
+    @AppStorage("speedtest.schedule") private var speedSchedule = 0.0
+    @AppStorage("budget.gb") private var budgetGB = 0.0
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
 
@@ -51,6 +53,35 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.menu)
+            }
+
+            Section("Speed test") {
+                Picker("Run automatically", selection: $speedSchedule) {
+                    Text("Off").tag(0.0)
+                    Text("Every hour").tag(1.0)
+                    Text("Every 3 hours").tag(3.0)
+                    Text("Every 6 hours").tag(6.0)
+                    Text("Every 12 hours").tag(12.0)
+                    Text("Once a day").tag(24.0)
+                }
+                Text("Automatic tests build the Speed history in Trends. Each run moves roughly 100–300 MB, which also counts toward your usage.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Data budget") {
+                Picker("Monthly limit", selection: $budgetGB) {
+                    Text("Off").tag(0.0)
+                    ForEach([10.0, 20, 50, 100, 200, 500, 1000], id: \.self) { gb in
+                        Text(gb >= 1000 ? "1 TB" : "\(Int(gb)) GB").tag(gb)
+                    }
+                }
+                .onChange(of: budgetGB) { _, newValue in
+                    if newValue > 0 { Notifier.requestAuthorization() }
+                }
+                Text("Get a notification when this Mac passes 80% and 100% of the budget in a calendar month.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Apple Intelligence") {

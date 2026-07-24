@@ -69,6 +69,12 @@ final class AppState: ObservableObject {
 
         reconcileOfflineUsage()
         snap = wifi.snapshot()
+
+        speed.onResult = { [weak self] r in
+            self?.db.addSpeedTest(ts: r.date, down: r.downloadMbps, up: r.uploadMbps,
+                                  latency: r.latencyMs, dns: r.dnsMs)
+        }
+
         startTimers()
         Task { await self.measureLatency() }
     }
@@ -116,6 +122,44 @@ final class AppState: ObservableObject {
         await measureLatency()
         recordTrend()
         flushUsage()
+        checkDataBudget()
+        maybeRunScheduledSpeedTest()
+    }
+
+    /// "Run automatically every N hours" setting from the Speed section.
+    private func maybeRunScheduledSpeedTest() {
+        let hours = UserDefaults.standard.double(forKey: "speedtest.schedule")
+        guard hours > 0, snap.connected, !speed.isRunning else { return }
+        let lastRun = speed.result?.date ?? .distantPast
+        if Date().timeIntervalSince(lastRun) >= hours * 3600 {
+            Task { await self.speed.run() }
+        }
+    }
+
+    /// Monthly data budget: notify once at 80% and once at 100% per month.
+    private func checkDataBudget() {
+        let gb = UserDefaults.standard.double(forKey: "budget.gb")
+        guard gb > 0 else { return }
+        guard let month = Calendar.current.dateInterval(of: .month, for: Date()) else { return }
+        let t = db.usageTotal(from: month.start)
+        let used = Double(t.rx + t.tx)
+        let limit = gb * 1_000_000_000
+        let monthKey = month.start.formatted(.iso8601.year().month())
+        let notifiedKey = "budget.notified.\(monthKey)"
+        let notified = UserDefaults.standard.integer(forKey: notifiedKey)
+        if used >= limit, notified < 100 {
+            Notifier.post(title: "Data budget reached",
+                          body: "You've used \(Fmt.bytes(Int64(used))) this month — past your \(Int(gb)) GB budget.")
+            UserDefaults.standard.set(100, forKey: notifiedKey)
+        } else if used >= limit * 0.8, notified < 80 {
+            Notifier.post(title: "80% of data budget used",
+                          body: "\(Fmt.bytes(Int64(used))) of your \(Int(gb)) GB monthly budget is gone.")
+            UserDefaults.standard.set(80, forKey: notifiedKey)
+        }
+    }
+
+    func speedRows(hours: Double?) -> [SpeedRow] {
+        db.speedTests(from: hours.map { Date().addingTimeInterval(-$0 * 3600) })
     }
 
     private func measureLatency() async {

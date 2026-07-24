@@ -22,6 +22,7 @@ enum UsageChartStyle: String, CaseIterable, Identifiable {
 struct UsageView: View {
     @EnvironmentObject var app: AppState
     @AppStorage("usage.chartStyle") private var chartStyleRaw = UsageChartStyle.bar.rawValue
+    @AppStorage("budget.gb") private var budgetGB = 0.0
     @State private var range: UsageRange = .week
     @State private var totals = UsageTotals()
     @State private var series: [UsageBucket] = []
@@ -34,6 +35,9 @@ struct UsageView: View {
     var body: some View {
         VStack(spacing: 16) {
             totalsRow
+            if budgetGB > 0 {
+                budgetBar
+            }
             chartCard
             liveRow
             InsightBox(
@@ -89,6 +93,35 @@ struct UsageView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .card(padding: 20)
+    }
+
+    // MARK: - Budget
+
+    private var budgetBar: some View {
+        let used = Double(totals.month.rx + totals.month.tx)
+        let limit = budgetGB * 1_000_000_000
+        let fraction = limit > 0 ? used / limit : 0
+        let color: Color = fraction >= 1 ? Theme.red : fraction >= 0.8 ? Theme.yellow : Theme.green
+        return HStack(spacing: 14) {
+            Text("MONTHLY BUDGET")
+                .font(.system(size: 11, weight: .semibold))
+                .kerning(1.1)
+                .foregroundStyle(Theme.textSecondary)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Theme.track)
+                    Capsule().fill(color)
+                        .frame(width: max(4, geo.size.width * min(1, fraction)))
+                        .animation(.smooth(duration: 0.5), value: fraction)
+                }
+            }
+            .frame(height: 6)
+            Text("\(Int((fraction * 100).rounded()))% of \(budgetGB >= 1000 ? "1 TB" : "\(Int(budgetGB)) GB")")
+                .font(.display(13, .semibold))
+                .foregroundStyle(color)
+                .layoutPriority(1)
+        }
+        .card(padding: 16)
     }
 
     // MARK: - Chart
