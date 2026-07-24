@@ -35,7 +35,7 @@ struct SignalView: View {
                              color: qualityColor, lineWidth: 13, size: 150)
                     VStack(spacing: 0) {
                         Text("\(snap.qualityPercent)")
-                            .font(.system(size: 42, weight: .bold))
+                            .font(.system(size: 42, weight: .bold, design: .monospaced))
                             .foregroundStyle(Theme.textPrimary)
                         Text("%")
                             .font(.system(size: 14, weight: .medium))
