@@ -20,6 +20,16 @@ codesign --force --sign - "$APP"
 echo "Built $APP"
 if [[ "$1" == "--run" ]]; then
     open "$APP"
+elif [[ "$1" == "--dmg" ]]; then
+    VERSION=$(defaults read "$PWD/$APP/Contents/Info" CFBundleShortVersionString)
+    STAGE=$(mktemp -d)
+    cp -R "$APP" "$STAGE/WiFiKept.app"
+    ln -s /Applications "$STAGE/Applications"
+    rm -f "build/WiFiKept-$VERSION.dmg"
+    hdiutil create -volname "WiFiKept" -srcfolder "$STAGE" -ov -format UDZO \
+        "build/WiFiKept-$VERSION.dmg"
+    rm -rf "$STAGE"
+    echo "Created build/WiFiKept-$VERSION.dmg"
 elif [[ "$1" == "--install" ]]; then
     osascript -e 'quit app "WiFiKept"' 2>/dev/null
     sleep 1
