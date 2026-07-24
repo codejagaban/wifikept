@@ -28,7 +28,7 @@ struct SpeedView: View {
             HStack(spacing: 10) {
                 Image(systemName: "info.circle")
                     .foregroundStyle(Theme.textTertiary)
-                Text("Speed test downloads ~9 MB and uploads 5 MB via Cloudflare. Results reflect your internet connection, not Wi-Fi signal strength.")
+                Text("Speed test runs 4 parallel Cloudflare streams for ~6 seconds each way, like fast.com. Data used scales with your speed (typically 100–300 MB per run). Results reflect your internet connection, not Wi-Fi signal strength.")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.textSecondary)
                 Spacer()

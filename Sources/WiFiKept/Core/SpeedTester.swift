@@ -1,7 +1,9 @@
 import Foundation
 
-/// Cloudflare-backed speed test: ~9 MB down, 5 MB up, plus TCP latency and
-/// DNS resolution timing. Mirrors what the original app describes.
+/// Cloudflare-backed speed test using the methodology real speed tests use:
+/// several parallel HTTP streams, time-boxed, with the TCP slow-start ramp
+/// excluded from the final number. Single-stream fixed-size transfers (the
+/// obvious approach) under-read badly on fast links.
 @MainActor
 final class SpeedTester: ObservableObject {
     enum Phase: Equatable {
@@ -27,11 +29,21 @@ final class SpeedTester: ObservableObject {
     static let cooldown: TimeInterval = 60
     private static let resultKey = "speedtest.last"
 
+    /// Tuning: 4 parallel streams, ~6 s each way, ignore the first second
+    /// (slow-start) when computing the final figure.
+    private static let streamCount = 4
+    private static let boxSeconds: Double = 6
+    private static let rampSeconds: Double = 1
+    // Cloudflare rejects __down requests of 100 MB+ with a 403; 90 MB is the
+    // biggest size that passes, and 4×90 MB outlasts the 6 s box on most links.
+    private static let downloadBytesPerStream = 90_000_000
+    private static let uploadBytesPerStream = 25_000_000
+
     var isRunning: Bool { phase != .idle && phase != .done }
 
     var cooldownRemaining: Int {
         guard let last = result?.date else { return 0 }
-        let left = Self.cooldown - Date().timeIntervalSince(last.addingTimeInterval(0))
+        let left = Self.cooldown - Date().timeIntervalSince(last)
         return max(0, Int(left.rounded()))
     }
 
@@ -59,10 +71,12 @@ final class SpeedTester: ObservableObject {
         let latency = pings.isEmpty ? nil : pings.sorted()[pings.count / 2]
 
         phase = .download
-        let down = await measureDownload(bytes: 9_000_000)
+        liveMbps = 0
+        let down = await measure(direction: .download)
 
         phase = .upload
-        let up = await measureUpload(bytes: 5_000_000)
+        liveMbps = 0
+        let up = await measure(direction: .upload)
 
         let r = Result(date: Date(), downloadMbps: down, uploadMbps: up,
                        latencyMs: latency, dnsMs: dnsMs)
@@ -73,48 +87,106 @@ final class SpeedTester: ObservableObject {
         phase = .done
     }
 
-    private nonisolated func measureDownload(bytes: Int) async -> Double {
-        guard let url = URL(string: "https://speed.cloudflare.com/__down?bytes=\(bytes)") else { return 0 }
-        do {
-            let start = CFAbsoluteTimeGetCurrent()
-            let (stream, _) = try await URLSession.shared.bytes(from: url)
-            var count = 0
-            var lastUpdate = start
-            for try await byte in stream {
-                _ = byte
-                count += 1
-                // Update the live gauge ~5×/sec.
-                if count % 262_144 == 0 {
-                    let now = CFAbsoluteTimeGetCurrent()
-                    if now - lastUpdate > 0.2 {
-                        lastUpdate = now
-                        let mbps = Double(count) * 8 / (now - start) / 1_000_000
-                        await MainActor.run { self.liveMbps = mbps }
-                    }
-                }
+    // MARK: - Transfer measurement
+
+    private enum Direction { case download, upload }
+
+    private nonisolated func measure(direction: Direction) async -> Double {
+        let meter = TransferMeter()
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 15
+        config.httpMaximumConnectionsPerHost = Self.streamCount
+        let session = URLSession(configuration: config, delegate: meter, delegateQueue: nil)
+        defer { session.invalidateAndCancel() }
+
+        switch direction {
+        case .download:
+            guard let url = URL(string: "https://speed.cloudflare.com/__down?bytes=\(Self.downloadBytesPerStream)") else { return 0 }
+            for _ in 0..<Self.streamCount {
+                session.dataTask(with: url).resume()
             }
-            let elapsed = CFAbsoluteTimeGetCurrent() - start
-            guard elapsed > 0 else { return 0 }
-            return Double(count) * 8 / elapsed / 1_000_000
-        } catch {
-            return 0
+        case .upload:
+            guard let url = URL(string: "https://speed.cloudflare.com/__up") else { return 0 }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
+            // One shared immutable buffer; TLS payloads aren't compressed, so zeros are fine.
+            let payload = Data(count: Self.uploadBytesPerStream)
+            for _ in 0..<Self.streamCount {
+                session.uploadTask(with: request, from: payload).resume()
+            }
         }
+
+        // Sample cumulative bytes every 100 ms until the time box closes or
+        // every stream finishes.
+        let start = CFAbsoluteTimeGetCurrent()
+        var samples: [(t: Double, bytes: Int64)] = [(0, 0)]
+        while true {
+            try? await Task.sleep(for: .milliseconds(100))
+            let now = CFAbsoluteTimeGetCurrent() - start
+            let bytes = meter.totalBytes
+            samples.append((now, bytes))
+
+            // Live gauge: throughput over the trailing second.
+            if let windowStart = samples.last(where: { $0.t <= now - 1 }) ?? samples.first,
+               now > windowStart.t {
+                let mbps = Double(bytes - windowStart.bytes) * 8 / (now - windowStart.t) / 1_000_000
+                await MainActor.run { self.liveMbps = mbps }
+            }
+
+            if now >= Self.boxSeconds { break }
+            if meter.completedTasks >= Self.streamCount { break }
+        }
+
+        // Final figure: steady-state window, slow-start excluded.
+        guard let last = samples.last, last.bytes > 0 else { return 0 }
+        let rampCutoff = min(Self.rampSeconds, last.t * 0.2)
+        let rampSample = samples.first(where: { $0.t >= rampCutoff }) ?? samples[0]
+        let span = last.t - rampSample.t
+        guard span > 0.5 else {
+            // Transfer finished almost instantly; total/elapsed is the best we have.
+            return Double(last.bytes) * 8 / max(last.t, 0.05) / 1_000_000
+        }
+        return Double(last.bytes - rampSample.bytes) * 8 / span / 1_000_000
+    }
+}
+
+/// Counts bytes across all concurrent tasks in a session, both directions.
+private final class TransferMeter: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+    private let lock = NSLock()
+    private var received: Int64 = 0
+    private var sentPerTask: [Int: Int64] = [:]
+    private var completed = 0
+
+    var totalBytes: Int64 {
+        lock.lock()
+        defer { lock.unlock() }
+        return received + sentPerTask.values.reduce(0, +)
     }
 
-    private nonisolated func measureUpload(bytes: Int) async -> Double {
-        guard let url = URL(string: "https://speed.cloudflare.com/__up") else { return 0 }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
-        let payload = Data(count: bytes) // zeros are fine; link doesn't compress TLS payloads
-        do {
-            let start = CFAbsoluteTimeGetCurrent()
-            _ = try await URLSession.shared.upload(for: request, from: payload)
-            let elapsed = CFAbsoluteTimeGetCurrent() - start
-            guard elapsed > 0 else { return 0 }
-            return Double(bytes) * 8 / elapsed / 1_000_000
-        } catch {
-            return 0
-        }
+    var completedTasks: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return completed
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        lock.lock()
+        received += Int64(data.count)
+        lock.unlock()
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask,
+                    didSendBodyData bytesSent: Int64, totalBytesSent: Int64,
+                    totalBytesExpectedToSend: Int64) {
+        lock.lock()
+        sentPerTask[task.taskIdentifier] = totalBytesSent
+        lock.unlock()
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        lock.lock()
+        completed += 1
+        lock.unlock()
     }
 }

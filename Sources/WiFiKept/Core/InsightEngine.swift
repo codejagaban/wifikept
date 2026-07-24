@@ -61,7 +61,7 @@ enum FallbackInsight {
     }
 
     static func speed(_ r: SpeedTester.Result?) -> String {
-        guard let r else { return "Run a speed test to measure this Wi-Fi link — about 9 MB down and 5 MB up via Cloudflare." }
+        guard let r else { return "Run a speed test to measure this Wi-Fi link — parallel Cloudflare streams, like fast.com." }
         let verdict = r.downloadMbps >= 100 ? "plenty for streaming and calls"
             : r.downloadMbps >= 25 ? "fine for everyday use" : "on the slow side"
         var text = String(format: "Last test: %.0f Mbps down, %.0f Mbps up — %@.",

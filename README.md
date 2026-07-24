@@ -8,7 +8,7 @@ Everything is computed and stored locally. The only network traffic the app orig
 
 - **Overview** — network at a glance: SSID, quality, live throughput chart, link rate, latency, today's usage
 - **Signal** — quality gauge, RSSI / noise floor / SNR meters, channel, width, standard, link rate, TX power, BSSID
-- **Speed** — Cloudflare speed test (~9 MB down, 5 MB up) with download/upload gauges, latency, DNS timing
+- **Speed** — Cloudflare speed test (4 parallel streams, ~6 s each way, slow-start excluded — fast.com-style methodology) with download/upload gauges, latency, DNS timing
 - **Trends** — signal, link rate, latency, noise & SNR, throughput and channel sampled every 30 s, kept 90 days (1H / 6H / 1D / 7D / All)
 - **Usage** — daily/weekly/monthly/all-time byte totals with a stacked bar chart (24H / 7D / 30D / 12M / All), kept forever
 - **Details** — IPv4, IPv6, BSSID, gateway, MAC, interface, security, band, country code, all copyable
