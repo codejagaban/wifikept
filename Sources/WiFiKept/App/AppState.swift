@@ -45,6 +45,9 @@ final class AppState: ObservableObject {
     // Only touched from init (main) and the serial fast-timer queue.
     private nonisolated(unsafe) let wifi = WiFiMonitor()
     private nonisolated(unsafe) let sampler = ThroughputSampler()
+    // Sampled on its own serial background timer.
+    private nonisolated(unsafe) let appMonitor = AppUsageMonitor()
+    private var appTimer: DispatchSourceTimer?
     private var fastTimer: DispatchSourceTimer?
     private var slowTimer: DispatchSourceTimer?
 
@@ -95,6 +98,13 @@ final class AppState: ObservableObject {
         }
         slow.resume()
         slowTimer = slow
+
+        // 10 s: per-app attribution sample (spawns nettop; keep off-main).
+        let apps = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
+        apps.schedule(deadline: .now() + 5, repeating: 10)
+        apps.setEventHandler { [weak self] in self?.appMonitor.sample() }
+        apps.resume()
+        appTimer = apps
     }
 
     private nonisolated func fastTick() {
@@ -158,6 +168,22 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Top apps by data moved for the selected usage range.
+    func topApps(range: UsageRange, limit: Int = 10) -> [(app: String, rx: Int64, tx: Int64)] {
+        let cal = Calendar.current
+        let now = Date()
+        let from: Date
+        switch range {
+        case .day: from = cal.startOfDay(for: now)
+        case .week: from = cal.startOfDay(for: now.addingTimeInterval(-6 * 86_400))
+        case .month: from = cal.startOfDay(for: now.addingTimeInterval(-29 * 86_400))
+        case .year: from = cal.startOfDay(for: now.addingTimeInterval(-364 * 86_400))
+        case .all: from = .distantPast
+        }
+        let fromDay = from == .distantPast ? "0000-00-00" : Self.dayFormatter.string(from: from)
+        return db.topApps(fromDay: fromDay, limit: limit)
+    }
+
     func speedRows(hours: Double?) -> [SpeedRow] {
         db.speedTests(from: hours.map { Date().addingTimeInterval(-$0 * 3600) })
     }
@@ -181,11 +207,24 @@ final class AppState: ObservableObject {
         trendSamples = 0
     }
 
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
     func flushUsage() {
         if pendingRx > 0 || pendingTx > 0 {
             db.addUsage(ts: Date(), rx: Int64(pendingRx), tx: Int64(pendingTx))
             pendingRx = 0
             pendingTx = 0
+        }
+        let appDeltas = appMonitor.drain()
+        if !appDeltas.isEmpty {
+            let day = Self.dayFormatter.string(from: Date())
+            for (app, d) in appDeltas {
+                db.addAppUsage(day: day, app: app, rx: d.rx, tx: d.tx)
+            }
         }
         // Persist absolute counters so a relaunch can credit whatever moved
         // while the app was closed (same boot only — counters reset on reboot).

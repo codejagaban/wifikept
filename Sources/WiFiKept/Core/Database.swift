@@ -55,6 +55,11 @@ final class Database {
                 CREATE TABLE IF NOT EXISTS speedtest(
                     ts INTEGER PRIMARY KEY, down REAL, up REAL, latency REAL, dns REAL)
                 """)
+            exec("""
+                CREATE TABLE IF NOT EXISTS app_usage(
+                    day TEXT, app TEXT, rx INTEGER NOT NULL, tx INTEGER NOT NULL,
+                    PRIMARY KEY(day, app))
+                """)
         }
     }
 
@@ -124,6 +129,45 @@ final class Database {
             }
             sqlite3_finalize(stmt)
             return result
+        }
+    }
+
+    // MARK: - Per-app usage
+
+    func addAppUsage(day: String, app: String, rx: Int64, tx: Int64) {
+        guard rx > 0 || tx > 0 else { return }
+        q.sync {
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, """
+                INSERT INTO app_usage(day, app, rx, tx) VALUES(?,?,?,?)
+                ON CONFLICT(day, app) DO UPDATE SET rx = rx + excluded.rx, tx = tx + excluded.tx
+                """, -1, &stmt, nil)
+            sqlite3_bind_text(stmt, 1, day, -1, SQLITE_TRANSIENT)
+            sqlite3_bind_text(stmt, 2, app, -1, SQLITE_TRANSIENT)
+            sqlite3_bind_int64(stmt, 3, rx)
+            sqlite3_bind_int64(stmt, 4, tx)
+            sqlite3_step(stmt)
+            sqlite3_finalize(stmt)
+        }
+    }
+
+    func topApps(fromDay: String, limit: Int) -> [(app: String, rx: Int64, tx: Int64)] {
+        q.sync {
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, """
+                SELECT app, SUM(rx), SUM(tx) FROM app_usage WHERE day >= ?
+                GROUP BY app ORDER BY SUM(rx) + SUM(tx) DESC LIMIT ?
+                """, -1, &stmt, nil)
+            sqlite3_bind_text(stmt, 1, fromDay, -1, SQLITE_TRANSIENT)
+            sqlite3_bind_int(stmt, 2, Int32(limit))
+            var rows: [(String, Int64, Int64)] = []
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                rows.append((String(cString: sqlite3_column_text(stmt, 0)),
+                             sqlite3_column_int64(stmt, 1),
+                             sqlite3_column_int64(stmt, 2)))
+            }
+            sqlite3_finalize(stmt)
+            return rows
         }
     }
 

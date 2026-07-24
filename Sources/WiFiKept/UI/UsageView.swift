@@ -26,6 +26,7 @@ struct UsageView: View {
     @State private var range: UsageRange = .week
     @State private var totals = UsageTotals()
     @State private var series: [UsageBucket] = []
+    @State private var topApps: [(app: String, rx: Int64, tx: Int64)] = []
     @State private var hoverDate: Date?
 
     private var chartStyle: UsageChartStyle {
@@ -39,6 +40,7 @@ struct UsageView: View {
                 budgetBar
             }
             chartCard
+            topAppsCard
             liveRow
             InsightBox(
                 title: "Usage Insight",
@@ -59,6 +61,7 @@ struct UsageView: View {
     private func load() {
         totals = app.usageTotals()
         series = app.usageSeries(range: range)
+        topApps = app.topApps(range: range)
     }
 
     // MARK: - Totals
@@ -325,6 +328,100 @@ struct UsageView: View {
         case .hour: return date.formatted(date: .omitted, time: .shortened)
         case .day: return date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
         default: return date.formatted(.dateTime.month(.wide).year())
+        }
+    }
+
+    // MARK: - Where your data goes
+
+    private var topAppsCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("WHERE YOUR DATA GOES")
+                    .font(.system(size: 11, weight: .semibold))
+                    .kerning(1.1)
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer()
+                Text("Top \(min(10, max(topApps.count, 1))) · \(range.rawValue)")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.textTertiary)
+            }
+            if topApps.isEmpty {
+                HStack(spacing: 10) {
+                    ProgressView().controlSize(.small)
+                    Text("Watching per-app traffic — the first entries appear within a minute.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 14)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(Array(topApps.enumerated()), id: \.element.app) { index, entry in
+                        appRow(rank: index + 1, entry: entry,
+                               peak: topApps.first.map { $0.rx + $0.tx } ?? 1)
+                    }
+                }
+            }
+            Text("Attributed per app while WiFiKept is running, from macOS network statistics. Helper processes are rolled into their parent app.")
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.textTertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
+    }
+
+    private func appRow(rank: Int, entry: (app: String, rx: Int64, tx: Int64), peak: Int64) -> some View {
+        let total = entry.rx + entry.tx
+        let share = peak > 0 ? Double(total) / Double(peak) : 0
+        return HStack(spacing: 12) {
+            Text("\(rank)")
+                .font(.mono(11, .medium))
+                .foregroundStyle(Theme.textTertiary)
+                .frame(width: 18, alignment: .trailing)
+            appIcon(for: entry.app)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(entry.app)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Theme.track)
+                        Capsule().fill(Theme.blue)
+                            .frame(width: max(3, geo.size.width * share))
+                    }
+                }
+                .frame(height: 3)
+            }
+            Spacer(minLength: 16)
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(Fmt.bytes(total))
+                    .font(.display(14, .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Text("↓ \(Fmt.bytes(entry.rx))  ↑ \(Fmt.bytes(entry.tx))")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Theme.textTertiary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func appIcon(for name: String) -> some View {
+        if let running = NSWorkspace.shared.runningApplications.first(where: { $0.localizedName == name }),
+           let icon = running.icon {
+            Image(nsImage: icon)
+                .resizable()
+                .frame(width: 24, height: 24)
+        } else if FileManager.default.fileExists(atPath: "/Applications/\(name).app") {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: "/Applications/\(name).app"))
+                .resizable()
+                .frame(width: 24, height: 24)
+        } else {
+            Image(systemName: "gearshape.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.textTertiary)
+                .frame(width: 24, height: 24)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Theme.fillSubtle))
         }
     }
 
