@@ -2,6 +2,12 @@ import SwiftUI
 import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        MainActor.assumeIsolated {
+            SnapshotMode.runIfRequested()
+        }
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         // Don't lose the last minute of usage accounting.
         MainActor.assumeIsolated {
