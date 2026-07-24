@@ -1,20 +1,39 @@
 import SwiftUI
 
-// MARK: - Card chrome
+// MARK: - Backdrop (the atmosphere the glass refracts)
+
+struct GlassBackdrop: View {
+    var body: some View {
+        ZStack {
+            Theme.windowBG
+            RadialGradient(colors: [Theme.glowA, .clear],
+                           center: .topLeading, startRadius: 0, endRadius: 900)
+            RadialGradient(colors: [Theme.glowB, .clear],
+                           center: .bottomTrailing, startRadius: 0, endRadius: 1000)
+        }
+        .ignoresSafeArea()
+    }
+}
+
+// MARK: - Card chrome (frosted glass)
 
 struct CardStyle: ViewModifier {
     var padding: CGFloat = 18
     func body(content: Content) -> some View {
         content
             .padding(padding)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Theme.card)
+            .background {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.ultraThinMaterial)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(Theme.stroke, lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(colors: [Theme.glassEdgeTop, Theme.glassEdgeBottom],
+                                               startPoint: .top, endPoint: .bottom),
+                                lineWidth: 1)
                     )
-            )
+                    .shadow(color: Theme.cardShadow, radius: 12, y: 5)
+            }
     }
 }
 
@@ -71,7 +90,10 @@ struct ArcGauge: View {
     var lineWidth: CGFloat = 12
     var size: CGFloat = 150
 
+    @State private var shown = false
+
     private var clamped: Double { min(1, max(0, progress)) }
+    private var display: Double { shown ? clamped : 0 }
 
     var body: some View {
         ZStack {
@@ -81,12 +103,16 @@ struct ArcGauge: View {
                         style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(135))
             Circle()
-                .trim(from: 0, to: 0.75 * clamped)
+                .trim(from: 0, to: 0.75 * display)
                 .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(135))
-                .animation(.smooth(duration: 0.45), value: clamped)
+                .animation(.smooth(duration: 0.45), value: display)
         }
         .frame(width: size, height: size)
+        .onAppear {
+            // Sweep in from zero when the tab appears.
+            withAnimation(.smooth(duration: 0.9)) { shown = true }
+        }
     }
 }
 
@@ -98,6 +124,8 @@ struct MeterRow: View {
     var progress: Double
     var color: Color
     var caption: String
+
+    @State private var shown = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -114,11 +142,14 @@ struct MeterRow: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(Theme.track)
                     Capsule().fill(color)
-                        .frame(width: max(6, geo.size.width * min(1, max(0, progress))))
-                        .animation(.easeOut(duration: 0.5), value: progress)
+                        .frame(width: max(6, geo.size.width * min(1, max(0, progress)) * (shown ? 1 : 0)))
+                        .animation(.smooth(duration: 0.5), value: progress)
                 }
             }
             .frame(height: 5)
+            .onAppear {
+                withAnimation(.smooth(duration: 0.8)) { shown = true }
+            }
             Text(caption)
                 .font(.system(size: 12))
                 .foregroundStyle(color)
@@ -152,14 +183,19 @@ struct InsightBox: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(tint.opacity(0.08))
+        .background {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.ultraThinMaterial)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(tint.opacity(0.25), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(tint.opacity(0.09))
                 )
-        )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(tint.opacity(0.28), lineWidth: 1)
+                )
+                .shadow(color: Theme.cardShadow, radius: 12, y: 5)
+        }
     }
 }
 

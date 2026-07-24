@@ -30,12 +30,24 @@ enum Theme {
     }
 
     // Surfaces
-    static let windowBG = dyn(light: 0xF2F3F6, dark: 0x14161C)
+    static let windowBG = dyn(light: 0xE9EDF3, dark: 0x121419)
     static let headerBG = dyn(light: 0xE7E9EE, dark: 0x0D0F13)
     static let card = dyn(light: 0xFFFFFF, dark: 0x1C202A)
     static let cardElevated = dyn(light: 0xFFFFFF, dark: 0x222735)
     static let stroke = dyn(light: NSColor.black.withAlphaComponent(0.08),
                             dark: NSColor.white.withAlphaComponent(0.06))
+
+    // Glass: backdrop glows, edge highlights and card shadows
+    static let glowA = dyn(light: NSColor.white.withAlphaComponent(0.75),
+                           dark: NSColor(hex: 0x2B3652, alpha: 0.50))
+    static let glowB = dyn(light: NSColor(hex: 0xC7D5EC, alpha: 0.60),
+                           dark: NSColor(hex: 0x123A42, alpha: 0.40))
+    static let glassEdgeTop = dyn(light: NSColor.white.withAlphaComponent(0.75),
+                                  dark: NSColor.white.withAlphaComponent(0.20))
+    static let glassEdgeBottom = dyn(light: NSColor.white.withAlphaComponent(0.20),
+                                     dark: NSColor.white.withAlphaComponent(0.04))
+    static let cardShadow = dyn(light: NSColor.black.withAlphaComponent(0.10),
+                                dark: NSColor.black.withAlphaComponent(0.40))
 
     // Neutral overlays (bars, pill containers, gauge tracks, gridlines)
     static let fillSubtle = dyn(light: NSColor.black.withAlphaComponent(0.05),

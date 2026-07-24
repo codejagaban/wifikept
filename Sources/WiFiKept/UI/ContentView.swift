@@ -19,52 +19,60 @@ struct MainWindow: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            if tab == .ask {
-                // The chat lays out its own scroll region and pinned input bar.
-                AskView()
-            } else {
-                ScrollView {
-                    content
-                        .padding(20)
-                        .frame(maxWidth: 1100)
-                        .frame(maxWidth: .infinity)
+            ZStack {
+                Group {
+                    if tab == .ask {
+                        // The chat lays out its own scroll region and pinned input bar.
+                        AskView()
+                    } else {
+                        ScrollView {
+                            content
+                                .padding(20)
+                                .frame(maxWidth: 1100)
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
                 }
+                .id(tab)
+                .transition(.blurReplace)
             }
         }
-        .background(Theme.windowBG)
+        .background(GlassBackdrop())
         .frame(minWidth: 960, minHeight: 700)
         .preferredColorScheme((AppearanceSetting(rawValue: appearanceRaw) ?? .system).scheme)
     }
 
     private var header: some View {
-        ZStack {
-            Theme.headerBG
-            HStack {
-                // Space for the traffic lights.
-                Spacer().frame(width: 80)
-                Spacer()
-                tabBar
-                Spacer()
-                SettingsLink {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(width: 30, height: 30)
-                        .background(Circle().fill(Theme.fillSubtle))
-                }
-                .buttonStyle(.plain)
-                .help("Settings")
-                Spacer().frame(width: 16)
+        HStack {
+            // Space for the traffic lights.
+            Spacer().frame(width: 80)
+            Spacer()
+            tabBar
+            Spacer()
+            SettingsLink {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(width: 30, height: 30)
+                    .background(Circle().fill(Theme.fillSubtle))
             }
+            .buttonStyle(.plain)
+            .help("Settings")
+            Spacer().frame(width: 16)
         }
         .frame(height: 54)
+        .frame(maxWidth: .infinity)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Theme.stroke).frame(height: 1)
+        }
     }
 
     private var tabBar: some View {
         HStack(spacing: 2) {
             ForEach(MainTab.allCases) { t in
                 Button {
-                    tab = t
+                    withAnimation(.smooth(duration: 0.3)) { tab = t }
                 } label: {
                     Text(t.rawValue)
                         .font(.system(size: 13, weight: tab == t ? .semibold : .regular))
@@ -79,7 +87,10 @@ struct MainWindow: View {
             }
         }
         .padding(3)
-        .background(Capsule().fill(Theme.gridline))
+        .background(
+            Capsule().fill(.ultraThinMaterial)
+                .overlay(Capsule().strokeBorder(Theme.stroke, lineWidth: 1))
+        )
     }
 
     @ViewBuilder

@@ -76,8 +76,7 @@ struct AskView: View {
                             .foregroundStyle(Theme.textPrimary)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 9)
-                            .background(Capsule().fill(Theme.fillSubtle))
-                            .overlay(Capsule().strokeBorder(Theme.stroke, lineWidth: 1))
+                            .background(glassShape(Capsule()))
                     }
                     .buttonStyle(.plain)
                 }
@@ -110,7 +109,11 @@ struct AskView: View {
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(msg.role == .user ? Theme.blue.opacity(0.28) : Theme.card)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(msg.role == .user ? Theme.blue.opacity(0.22) : Color.clear)
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
                             .strokeBorder(msg.role == .user ? Theme.blue.opacity(0.35) : Theme.stroke,
@@ -145,8 +148,7 @@ struct AskView: View {
                 .onSubmit { submit(draft) }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(Capsule().fill(Theme.fillSubtle))
-                .overlay(Capsule().strokeBorder(Theme.stroke, lineWidth: 1))
+                .background(glassShape(Capsule()))
             Button {
                 submit(draft)
             } label: {
@@ -163,7 +165,7 @@ struct AskView: View {
         .padding(.vertical, 14)
         .frame(maxWidth: 860)
         .frame(maxWidth: .infinity)
-        .background(Theme.windowBG)
+        .background(.ultraThinMaterial)
     }
 
     private var canSend: Bool {

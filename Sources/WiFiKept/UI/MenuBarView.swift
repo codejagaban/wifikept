@@ -84,7 +84,7 @@ struct MenuBarView: View {
         }
         .padding(12)
         .frame(width: 360)
-        .background(Theme.headerBG)
+        .background(GlassBackdrop())
         .preferredColorScheme((AppearanceSetting(rawValue: appearanceRaw) ?? .system).scheme)
     }
 
@@ -126,7 +126,7 @@ struct MenuBarView: View {
             }
         }
         .padding(12)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.card))
+        .background(glassShape(RoundedRectangle(cornerRadius: 12, style: .continuous)))
     }
 
     private func cell(icon: String, color: Color, title: String, value: String) -> some View {
@@ -148,7 +148,7 @@ struct MenuBarView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(11)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.card))
+        .background(glassShape(RoundedRectangle(cornerRadius: 12, style: .continuous)))
     }
 
     private var buttonsRow: some View {
@@ -175,9 +175,20 @@ struct MenuBarView: View {
                 .foregroundStyle(Theme.textSecondary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 36)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.card))
+                .background(glassShape(RoundedRectangle(cornerRadius: 10, style: .continuous)))
         }
         .buttonStyle(.plain)
         .help(help)
     }
+}
+
+
+/// Small frosted panel used by the popover cells and buttons.
+@ViewBuilder
+func glassShape(_ shape: some InsettableShape) -> some View {
+    shape.fill(.ultraThinMaterial)
+        .overlay(shape.strokeBorder(
+            LinearGradient(colors: [Theme.glassEdgeTop, Theme.glassEdgeBottom],
+                           startPoint: .top, endPoint: .bottom),
+            lineWidth: 1))
 }
