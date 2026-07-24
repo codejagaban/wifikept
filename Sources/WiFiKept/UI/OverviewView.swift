@@ -36,7 +36,7 @@ struct OverviewView: View {
                 MetricCard(icon: "chart.pie.fill", iconColor: Theme.teal,
                            title: "Total Usage",
                            value: Fmt.bytes(totals.allTime.rx + totals.allTime.tx),
-                           detail: "all-time on this Mac")
+                           detail: "all-time")
             }
             HStack(spacing: 14) {
                 liveCard(icon: "arrow.down", chipColor: Theme.blue,
