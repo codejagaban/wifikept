@@ -11,6 +11,41 @@ struct SettingsView: View {
     @ObservedObject private var updater = UpdateChecker.shared
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
+    @State private var showCustomBudget = false
+    @State private var customBudgetText = ""
+
+    static let budgetPresets: [Double] = [10, 20, 50, 100, 200, 500, 1000]
+
+    /// Picker selection: 0 = off, a preset value, or -1 for the custom field.
+    private var budgetSelection: Binding<Double> {
+        Binding(
+            get: {
+                if budgetGB == 0 && !showCustomBudget { return 0 }
+                return showCustomBudget || !Self.budgetPresets.contains(budgetGB) ? -1 : budgetGB
+            },
+            set: { choice in
+                if choice == -1 {
+                    customBudgetText = budgetGB > 0 ? String(format: "%g", budgetGB) : ""
+                    showCustomBudget = true
+                } else {
+                    showCustomBudget = false
+                    budgetGB = choice
+                    if choice > 0 { Notifier.requestAuthorization() }
+                }
+            })
+    }
+
+    private var parsedCustomBudget: Double? {
+        guard let value = Double(customBudgetText.replacingOccurrences(of: ",", with: ".")),
+              value > 0, value <= 100_000 else { return nil }
+        return value
+    }
+
+    private func applyCustomBudget() {
+        guard let value = parsedCustomBudget else { return }
+        budgetGB = value
+        Notifier.requestAuthorization()
+    }
 
     var body: some View {
         Form {
@@ -68,14 +103,26 @@ struct SettingsView: View {
             }
 
             Section("Data budget") {
-                Picker("Monthly limit", selection: $budgetGB) {
+                Picker("Monthly limit", selection: budgetSelection) {
                     Text("Off").tag(0.0)
-                    ForEach([10.0, 20, 50, 100, 200, 500, 1000], id: \.self) { gb in
+                    ForEach(Self.budgetPresets, id: \.self) { gb in
                         Text(gb >= 1000 ? "1 TB" : "\(Int(gb)) GB").tag(gb)
                     }
+                    Divider()
+                    Text("Custom…").tag(-1.0)
                 }
-                .onChange(of: budgetGB) { _, newValue in
-                    if newValue > 0 { Notifier.requestAuthorization() }
+                if showCustomBudget {
+                    HStack {
+                        TextField("e.g. 250", text: $customBudgetText)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 90)
+                            .onSubmit(applyCustomBudget)
+                        Text("GB per month")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Set", action: applyCustomBudget)
+                            .disabled(parsedCustomBudget == nil)
+                    }
                 }
                 Text("Get a notification when this Mac passes 80% and 100% of the budget in a calendar month.")
                     .font(.caption)
@@ -131,6 +178,12 @@ struct SettingsView: View {
                 Text("All readings stay on this Mac. The only network traffic WiFiKept originates is the speed test itself (via Cloudflare). Location access is required by macOS to read Wi-Fi identifiers like SSID and BSSID — your location itself is never read.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+        }
+        .onAppear {
+            if budgetGB > 0 && !Self.budgetPresets.contains(budgetGB) {
+                showCustomBudget = true
+                customBudgetText = String(format: "%g", budgetGB)
             }
         }
         .formStyle(.grouped)
