@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage("budget.gb") private var budgetGB = 0.0
     @AppStorage("updates.auto") private var autoUpdates = true
     @AppStorage("battery.saver") private var batterySaverEnabled = true
+    @AppStorage("background.interval") private var backgroundInterval = 60.0
     @ObservedObject private var updater = UpdateChecker.shared
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
@@ -81,8 +82,14 @@ struct SettingsView: View {
                 Text("Keep WiFiKept running so weekly and monthly usage totals stay complete.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Toggle("Slow down sampling on battery", isOn: $batterySaverEnabled)
-                Text("On battery, live readouts refresh every 5–30 s instead of every 1–10 s. Usage totals stay exact either way.")
+                Picker("Background updates", selection: $backgroundInterval) {
+                    Text("Every 30 seconds").tag(30.0)
+                    Text("Every minute").tag(60.0)
+                    Text("Every 2 minutes").tag(120.0)
+                    Text("Every 5 minutes").tag(300.0)
+                }
+                Toggle("Slow down further on battery", isOn: $batterySaverEnabled)
+                Text("How often WiFiKept samples while you're not looking at it — full speed resumes instantly when you open the window or menu bar. Usage totals stay exact at any interval; longer ones mean coarser Trends history and per-app attribution.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

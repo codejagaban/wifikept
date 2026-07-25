@@ -132,6 +132,7 @@ struct MenuBarView: View {
         }
         .padding(12)
         .frame(width: 360)
+        .onAppear { app.refreshNow() }
         .background(VisualEffectBackground().ignoresSafeArea())
         .preferredColorScheme((AppearanceSetting(rawValue: appearanceRaw) ?? .system).scheme)
     }

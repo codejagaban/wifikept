@@ -38,6 +38,8 @@ struct MainWindow: View {
             }
         }
         .background(GlassBackdrop())
+        .onAppear { app.noteUIVisibilityChanged() }
+        .onDisappear { app.noteUIVisibilityChanged() }
         .frame(minWidth: 960, minHeight: 700)
         .preferredColorScheme((AppearanceSetting(rawValue: appearanceRaw) ?? .system).scheme)
     }

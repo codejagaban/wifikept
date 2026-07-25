@@ -57,6 +57,8 @@ final class AppState: ObservableObject {
     private nonisolated(unsafe) let appMonitor = AppUsageMonitor()
     private var appTimer: DispatchSourceTimer?
     private var connTimer: DispatchSourceTimer?
+    /// All sampling runs here so timers and on-demand refreshes never race.
+    private let samplingQueue = DispatchQueue(label: "wifikept.sampling", qos: .utility)
     private let pathMonitor = NWPathMonitor()
     private var fastTimer: DispatchSourceTimer?
     private var slowTimer: DispatchSourceTimer?
@@ -107,7 +109,7 @@ final class AppState: ObservableObject {
     private func startTimers() {
         // Byte counters — a cheap sysctl, the only thing that needs a fast
         // cadence (live throughput readouts).
-        let fast = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
+        let fast = DispatchSource.makeTimerSource(queue: samplingQueue)
         fast.schedule(deadline: .now() + 1, repeating: 1, leeway: .milliseconds(250))
         fast.setEventHandler { [weak self] in self?.fastTick() }
         fast.resume()
@@ -116,7 +118,7 @@ final class AppState: ObservableObject {
         // Connection snapshot — CoreWLAN IPC + getifaddrs + SystemConfiguration.
         // Far more expensive than the counters, and SSID/channel/IP change
         // rarely, so it runs on its own slower cadence.
-        let conn = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
+        let conn = DispatchSource.makeTimerSource(queue: samplingQueue)
         conn.schedule(deadline: .now() + 2, repeating: 2, leeway: .milliseconds(500))
         conn.setEventHandler { [weak self] in self?.connectionTick() }
         conn.resume()
@@ -132,7 +134,7 @@ final class AppState: ObservableObject {
         slowTimer = slow
 
         // Per-app attribution (spawns nettop; keep off-main).
-        let apps = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
+        let apps = DispatchSource.makeTimerSource(queue: samplingQueue)
         apps.schedule(deadline: .now() + 5, repeating: 10, leeway: .seconds(1))
         apps.setEventHandler { [weak self] in
             guard let self else { return }
@@ -155,21 +157,43 @@ final class AppState: ObservableObject {
 
     private nonisolated func fastTick() {
         let sample = sampler.sample()
-        Task { @MainActor in
-            if let s = sample {
-                self.latestCounters = s.counters
-                // Light smoothing so the live numbers don't jitter.
-                self.rxBps = self.rxBps * 0.3 + s.rxPerSec * 0.7
-                self.txBps = self.txBps * 0.3 + s.txPerSec * 0.7
-                self.pendingRx += s.rxDelta
-                self.pendingTx += s.txDelta
-                self.trendRxAccum += s.rxPerSec
-                self.trendTxAccum += s.txPerSec
-                self.trendSamples += 1
-                self.liveHistory.append((Date(), s.rxPerSec, s.txPerSec))
-                if self.liveHistory.count > 120 { self.liveHistory.removeFirst() }
+        Task { @MainActor in self.apply(sample) }
+    }
+
+    private func apply(_ sample: ThroughputSampler.Sample?) {
+        guard let s = sample else { return }
+        latestCounters = s.counters
+        // Light smoothing so the live numbers don't jitter.
+        rxBps = rxBps * 0.3 + s.rxPerSec * 0.7
+        txBps = txBps * 0.3 + s.txPerSec * 0.7
+        pendingRx += s.rxDelta
+        pendingTx += s.txDelta
+        trendRxAccum += s.rxPerSec
+        trendTxAccum += s.txPerSec
+        trendSamples += 1
+        liveHistory.append((Date(), s.rxPerSec, s.txPerSec))
+        if liveHistory.count > 120 { liveHistory.removeFirst() }
+    }
+
+    /// Sample immediately — called when a window or the menu bar popover
+    /// appears, so a long background interval never shows stale readings.
+    func refreshNow() {
+        samplingQueue.async { [weak self] in
+            guard let self else { return }
+            let snapshot = self.wifi.snapshot()
+            let sample = self.sampler.sample()
+            Task { @MainActor in
+                self.snap = snapshot
+                self.apply(sample)
             }
         }
+    }
+
+    /// The main window appeared or went away — switch cadence right away
+    /// instead of waiting for the next periodic check.
+    func noteUIVisibilityChanged() {
+        updateSamplingProfile()
+        refreshNow()
     }
 
     private func slowTick() async {
@@ -215,18 +239,25 @@ final class AppState: ObservableObject {
         currentProfile = profile
         batterySaver = (profile == .saver)
 
-        let fast: Double, conn: Double, apps: Double
+        // How often to sample when nobody is looking (Settings; default 60 s).
+        let stored = UserDefaults.standard.double(forKey: "background.interval")
+        let background = stored > 0 ? stored : 60
+        let fast: Double, conn: Double, apps: Double, slow: Double
         switch profile {
         case .active:
-            (fast, conn, apps) = (1, 2, 10)
+            (fast, conn, apps, slow) = (1, 2, 10, 30)
         case .idle:
-            (fast, conn, apps) = (menuBarNeedsThroughput ? 1 : 10, 15, 30)
+            // A menu bar throughput readout still needs a livelier tick.
+            (fast, conn, apps, slow) = (menuBarNeedsThroughput ? min(background, 5) : background,
+                                        background, background, background)
         case .saver:
-            (fast, conn, apps) = (menuBarNeedsThroughput ? 5 : 20, 30, 60)
+            let b = min(background * 2, 300)
+            (fast, conn, apps, slow) = (menuBarNeedsThroughput ? min(b, 10) : b, b, b, b)
         }
         reschedule(fastTimer, every: fast)
         reschedule(connTimer, every: conn)
         reschedule(appTimer, every: apps)
+        reschedule(slowTimer, every: slow)
     }
 
     /// Generous leeway lets the kernel coalesce our wake-ups with other
