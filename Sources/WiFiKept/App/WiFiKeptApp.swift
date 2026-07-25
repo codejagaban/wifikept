@@ -5,6 +5,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         MainActor.assumeIsolated {
             SnapshotMode.runIfRequested()
+            // Debug aid: run as a pure menu bar app (no window) so the
+            // background sampling cost can be measured.
+            if ProcessInfo.processInfo.environment["WIFIKEPT_BACKGROUND"] != nil {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    NSApp.windows.forEach { if $0.frame.height > 100 { $0.close() } }
+                }
+            }
         }
     }
 

@@ -56,6 +56,7 @@ final class AppState: ObservableObject {
     // Sampled on its own serial background timer.
     private nonisolated(unsafe) let appMonitor = AppUsageMonitor()
     private var appTimer: DispatchSourceTimer?
+    private var connTimer: DispatchSourceTimer?
     private let pathMonitor = NWPathMonitor()
     private var fastTimer: DispatchSourceTimer?
     private var slowTimer: DispatchSourceTimer?
@@ -104,25 +105,35 @@ final class AppState: ObservableObject {
     }
 
     private func startTimers() {
-        // 1 s: throughput + connection snapshot.
+        // Byte counters — a cheap sysctl, the only thing that needs a fast
+        // cadence (live throughput readouts).
         let fast = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
-        fast.schedule(deadline: .now() + 1, repeating: 1)
+        fast.schedule(deadline: .now() + 1, repeating: 1, leeway: .milliseconds(250))
         fast.setEventHandler { [weak self] in self?.fastTick() }
         fast.resume()
         fastTimer = fast
 
+        // Connection snapshot — CoreWLAN IPC + getifaddrs + SystemConfiguration.
+        // Far more expensive than the counters, and SSID/channel/IP change
+        // rarely, so it runs on its own slower cadence.
+        let conn = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
+        conn.schedule(deadline: .now() + 2, repeating: 2, leeway: .milliseconds(500))
+        conn.setEventHandler { [weak self] in self?.connectionTick() }
+        conn.resume()
+        connTimer = conn
+
         // 30 s: trend row, latency probe, usage flush check.
         let slow = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
-        slow.schedule(deadline: .now() + 30, repeating: 30)
+        slow.schedule(deadline: .now() + 30, repeating: 30, leeway: .seconds(3))
         slow.setEventHandler { [weak self] in
             Task { @MainActor [weak self] in await self?.slowTick() }
         }
         slow.resume()
         slowTimer = slow
 
-        // 10 s: per-app attribution sample (spawns nettop; keep off-main).
+        // Per-app attribution (spawns nettop; keep off-main).
         let apps = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
-        apps.schedule(deadline: .now() + 5, repeating: 10)
+        apps.schedule(deadline: .now() + 5, repeating: 10, leeway: .seconds(1))
         apps.setEventHandler { [weak self] in
             guard let self else { return }
             self.appMonitor.sample()
@@ -133,11 +144,18 @@ final class AppState: ObservableObject {
         appTimer = apps
     }
 
-    private nonisolated func fastTick() {
+    private nonisolated func connectionTick() {
         let snapshot = wifi.snapshot()
+        Task { @MainActor in
+            // Only publish when something actually changed — an unchanged
+            // snapshot would re-render every visible view for nothing.
+            if snapshot != self.snap { self.snap = snapshot }
+        }
+    }
+
+    private nonisolated func fastTick() {
         let sample = sampler.sample()
         Task { @MainActor in
-            self.snap = snapshot
             if let s = sample {
                 self.latestCounters = s.counters
                 // Light smoothing so the live numbers don't jitter.
@@ -169,20 +187,53 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Battery-aware sampling: on battery (and with no WiFiKept UI on
-    /// screen) the fast counters drop from 1 s to 5 s and the nettop
-    /// per-app sampler from 10 s to 30 s. Totals stay exact — the counters
-    /// are cumulative — only live readouts get coarser. Re-checked every 30 s.
+    private enum ActivityProfile { case active, idle, saver }
+    private var currentProfile: ActivityProfile = .active
+
+    /// Sampling adapts to what's actually being watched. Totals stay exact in
+    /// every profile — the counters are cumulative, so reading them less often
+    /// loses no bytes; only live readouts get coarser.
+    ///   active — a window is open: full cadence.
+    ///   idle   — nothing on screen, on power: back off (menu bar still fed).
+    ///   saver  — nothing on screen, on battery: back off further.
     private func updateSamplingProfile() {
-        let enabled = UserDefaults.standard.object(forKey: "battery.saver") as? Bool ?? true
+        let saverEnabled = UserDefaults.standard.object(forKey: "battery.saver") as? Bool ?? true
         let uiVisible = NSApp.windows.contains { $0.isVisible && $0.frame.height > 100 }
-        let wantSaver = enabled && PowerSource.onBattery && !uiVisible
-        guard wantSaver != batterySaver else { return }
-        batterySaver = wantSaver
-        let fastInterval: Double = wantSaver ? 5 : 1
-        let appInterval: Double = wantSaver ? 30 : 10
-        fastTimer?.schedule(deadline: .now() + fastInterval, repeating: fastInterval)
-        appTimer?.schedule(deadline: .now() + appInterval, repeating: appInterval)
+        // The menu bar can be showing live throughput, which needs the fast tick.
+        let metric = MenuBarMetric(rawValue: UserDefaults.standard.string(forKey: "menubar.metric") ?? "")
+        let menuBarNeedsThroughput = metric == .download || metric == .upload
+
+        let profile: ActivityProfile
+        if uiVisible {
+            profile = .active
+        } else if saverEnabled && PowerSource.onBattery {
+            profile = .saver
+        } else {
+            profile = .idle
+        }
+        guard profile != currentProfile else { return }
+        currentProfile = profile
+        batterySaver = (profile == .saver)
+
+        let fast: Double, conn: Double, apps: Double
+        switch profile {
+        case .active:
+            (fast, conn, apps) = (1, 2, 10)
+        case .idle:
+            (fast, conn, apps) = (menuBarNeedsThroughput ? 1 : 10, 15, 30)
+        case .saver:
+            (fast, conn, apps) = (menuBarNeedsThroughput ? 5 : 20, 30, 60)
+        }
+        reschedule(fastTimer, every: fast)
+        reschedule(connTimer, every: conn)
+        reschedule(appTimer, every: apps)
+    }
+
+    /// Generous leeway lets the kernel coalesce our wake-ups with other
+    /// system activity instead of waking the CPU on its own schedule.
+    private func reschedule(_ timer: DispatchSourceTimer?, every interval: Double) {
+        timer?.schedule(deadline: .now() + interval, repeating: interval,
+                        leeway: .milliseconds(Int(interval * 250)))
     }
 
     /// Monthly data budget: notify once at 80% and once at 100% per month.

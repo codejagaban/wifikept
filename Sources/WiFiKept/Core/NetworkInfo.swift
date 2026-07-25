@@ -35,18 +35,25 @@ enum NetworkInfo {
         return (v4, v6)
     }
 
+    // One shared store instead of allocating a new one on every read.
+    // SCDynamicStore isn't documented thread-safe, so serialise access.
+    private static let storeLock = NSLock()
+    private nonisolated(unsafe) static let store: SCDynamicStore? =
+        SCDynamicStoreCreate(nil, "WiFiKept" as CFString, nil, nil)
+
+    private static func copyValue(_ key: String) -> [String: Any]? {
+        storeLock.lock()
+        defer { storeLock.unlock() }
+        guard let store, let value = SCDynamicStoreCopyValue(store, key as CFString) else { return nil }
+        return value as? [String: Any]
+    }
+
     static func gateway() -> String? {
-        guard let store = SCDynamicStoreCreate(nil, "WiFiKept" as CFString, nil, nil),
-              let value = SCDynamicStoreCopyValue(store, "State:/Network/Global/IPv4" as CFString),
-              let dict = value as? [String: Any] else { return nil }
-        return dict["Router"] as? String
+        copyValue("State:/Network/Global/IPv4")?["Router"] as? String
     }
 
     static func dnsServers() -> [String] {
-        guard let store = SCDynamicStoreCreate(nil, "WiFiKept" as CFString, nil, nil),
-              let value = SCDynamicStoreCopyValue(store, "State:/Network/Global/DNS" as CFString),
-              let dict = value as? [String: Any] else { return [] }
-        return dict["ServerAddresses"] as? [String] ?? []
+        copyValue("State:/Network/Global/DNS")?["ServerAddresses"] as? [String] ?? []
     }
 
     /// Wall time for one synchronous DNS resolution, in milliseconds.
