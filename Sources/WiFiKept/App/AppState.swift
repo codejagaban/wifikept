@@ -40,7 +40,7 @@ final class AppState: ObservableObject {
     @Published private(set) var usageStamp = 0
     /// Most recent per-app transfer rates (busiest first), ~10 s cadence.
     @Published private(set) var liveTalkers: [(app: String, rxBps: Double, txBps: Double)] = []
-    /// True on hotspots/metered links (pauses scheduled speed tests).
+    /// True on hotspots/metered links (warns before a manual speed test).
     @Published private(set) var pathIsExpensive = false
     /// True while sampling is slowed down to save battery.
     @Published private(set) var batterySaver = false
@@ -81,6 +81,9 @@ final class AppState: ObservableObject {
         db = Database(path: dir.appendingPathComponent("store.sqlite").path)
         db.pruneTrend(before: Date().addingTimeInterval(-90 * 86_400))
         db.compactUsage(olderThan: Date().addingTimeInterval(-7 * 86_400))
+
+        // Speed tests are user-initiated only; drop any schedule from older builds.
+        UserDefaults.standard.removeObject(forKey: "speedtest.schedule")
 
         reconcileOfflineUsage()
         refreshTotalsCache()
@@ -156,7 +159,6 @@ final class AppState: ObservableObject {
         recordTrend()
         flushUsage()
         checkDataBudget()
-        maybeRunScheduledSpeedTest()
         updateSamplingProfile()
 
         // Compact fine-grained usage rows once a day.
@@ -181,16 +183,6 @@ final class AppState: ObservableObject {
         let appInterval: Double = wantSaver ? 30 : 10
         fastTimer?.schedule(deadline: .now() + fastInterval, repeating: fastInterval)
         appTimer?.schedule(deadline: .now() + appInterval, repeating: appInterval)
-    }
-
-    /// "Run automatically every N hours" setting from the Speed section.
-    private func maybeRunScheduledSpeedTest() {
-        let hours = UserDefaults.standard.double(forKey: "speedtest.schedule")
-        guard hours > 0, snap.connected, !speed.isRunning, !pathIsExpensive else { return }
-        let lastRun = speed.result?.date ?? .distantPast
-        if Date().timeIntervalSince(lastRun) >= hours * 3600 {
-            Task { await self.speed.run() }
-        }
     }
 
     /// Monthly data budget: notify once at 80% and once at 100% per month.

@@ -5,7 +5,6 @@ struct SettingsView: View {
     @EnvironmentObject var app: AppState
     @AppStorage("menubar.metric") private var metricRaw = MenuBarMetric.quality.rawValue
     @AppStorage("appearance") private var appearanceRaw = AppearanceSetting.system.rawValue
-    @AppStorage("speedtest.schedule") private var speedSchedule = 0.0
     @AppStorage("budget.gb") private var budgetGB = 0.0
     @AppStorage("updates.auto") private var autoUpdates = true
     @AppStorage("battery.saver") private var batterySaverEnabled = true
@@ -63,15 +62,7 @@ struct SettingsView: View {
             }
 
             Section("Speed test") {
-                Picker("Run automatically", selection: $speedSchedule) {
-                    Text("Off").tag(0.0)
-                    Text("Every hour").tag(1.0)
-                    Text("Every 3 hours").tag(3.0)
-                    Text("Every 6 hours").tag(6.0)
-                    Text("Every 12 hours").tag(12.0)
-                    Text("Once a day").tag(24.0)
-                }
-                Text("Automatic tests build the Speed history in Trends. Each run moves roughly 100–300 MB, which also counts toward your usage.")
+                Text("Speed tests only run when you start one from the Speed tab — each run moves roughly 100–300 MB, so WiFiKept never tests on its own.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

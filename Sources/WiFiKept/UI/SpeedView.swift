@@ -27,9 +27,11 @@ struct SpeedView: View {
                            detail: connectionRating.1)
             }
             HStack(spacing: 10) {
-                Image(systemName: "info.circle")
-                    .foregroundStyle(Theme.textTertiary)
-                Text("Speed test runs 4 parallel Cloudflare streams for ~6 seconds each way, like fast.com. Data used scales with your speed (typically 100–300 MB per run). Results reflect your internet connection, not Wi-Fi signal strength.")
+                Image(systemName: app.pathIsExpensive ? "exclamationmark.triangle.fill" : "info.circle")
+                    .foregroundStyle(app.pathIsExpensive ? Theme.yellow : Theme.textTertiary)
+                Text(app.pathIsExpensive
+                     ? "You're on a metered connection. A test moves roughly 100–300 MB of it — WiFiKept only tests when you press the button."
+                     : "Speed test runs 4 parallel Cloudflare streams for ~6 seconds each way, like fast.com. Data used scales with your speed (typically 100–300 MB per run), and tests only ever run when you start one. Results reflect your internet connection, not Wi-Fi signal strength.")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

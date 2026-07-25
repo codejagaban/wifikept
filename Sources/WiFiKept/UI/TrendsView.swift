@@ -186,7 +186,7 @@ struct TrendsView: View {
         .chartForegroundStyleScale(["Down": Theme.blue, "Up": Theme.green])
         .overlay {
             if speedRows.isEmpty {
-                Text("No speed tests in this range yet — run one in the Speed tab, or turn on automatic tests in Settings.")
+                Text("No speed tests in this range yet — run one from the Speed tab.")
                     .font(.system(size: 13))
                     .foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
