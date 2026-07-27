@@ -15,6 +15,9 @@ struct SettingsView: View {
             PrivacySettings()
                 .tabItem { Label("Privacy", systemImage: "lock.shield") }
         }
+        // Full keyboard access otherwise leaves a focus highlight on one tab
+        // while a different tab is selected — two highlights at once.
+        .focusEffectDisabled()
         .frame(width: 500, height: 360)
     }
 }
