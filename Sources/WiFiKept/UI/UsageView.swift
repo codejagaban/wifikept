@@ -23,7 +23,7 @@ struct UsageView: View {
     @EnvironmentObject var app: AppState
     @AppStorage("usage.chartStyle") private var chartStyleRaw = UsageChartStyle.bar.rawValue
     @AppStorage("budget.gb") private var budgetGB = 0.0
-    @State private var range: UsageRange = .week
+    @AppStorage("usage.range") private var rangeRaw = UsageRange.month.rawValue
     @State private var totals = UsageTotals()
     @State private var series: [UsageBucket] = []
     @State private var topApps: [(app: String, rx: Int64, tx: Int64)] = []
@@ -32,6 +32,13 @@ struct UsageView: View {
 
     private var chartStyle: UsageChartStyle {
         UsageChartStyle(rawValue: chartStyleRaw) ?? .bar
+    }
+
+    /// Selected time range, remembered across launches (defaults to 30 days).
+    private var range: Binding<UsageRange> {
+        Binding(
+            get: { UsageRange(rawValue: rangeRaw) ?? .month },
+            set: { rangeRaw = $0.rawValue })
     }
 
     var body: some View {
@@ -57,15 +64,15 @@ struct UsageView: View {
                 tint: Theme.teal)
         }
         .onAppear(perform: load)
-        .onChange(of: range) { load() }
+        .onChange(of: rangeRaw) { load() }
         .onChange(of: app.usageStamp) { load() }
     }
 
     private func load() {
         totals = app.usageTotals()
-        series = app.usageSeries(range: range)
-        topApps = app.topApps(range: range)
-        networks = app.networkTotals(range: range)
+        series = app.usageSeries(range: range.wrappedValue)
+        topApps = app.topApps(range: range.wrappedValue)
+        networks = app.networkTotals(range: range.wrappedValue)
     }
 
     // MARK: - Totals
@@ -141,7 +148,7 @@ struct UsageView: View {
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 stylePicker
-                PillPicker(options: UsageRange.allCases.map { ($0, $0.rawValue) }, selection: $range)
+                PillPicker(options: UsageRange.allCases.map { ($0, $0.rawValue) }, selection: range)
             }
             if series.isEmpty {
                 VStack(spacing: 8) {
@@ -313,7 +320,7 @@ struct UsageView: View {
     }
 
     private var xDomain: ClosedRange<Date> {
-        UsageView.xDomain(range: range, now: Date(), since: totals.since)
+        UsageView.xDomain(range: range.wrappedValue, now: Date(), since: totals.since)
     }
 
     /// Pin the axis to the full selected range so sparse data doesn't
@@ -347,7 +354,7 @@ struct UsageView: View {
     }
 
     private var barUnit: Calendar.Component {
-        switch range {
+        switch range.wrappedValue {
         case .day: return .hour
         case .week, .month: return .day
         case .year, .all: return .month
@@ -423,7 +430,7 @@ struct UsageView: View {
                     .kerning(1.1)
                     .foregroundStyle(Theme.textSecondary)
                 Spacer()
-                Text(range.rawValue)
+                Text(range.wrappedValue.rawValue)
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.textTertiary)
             }
@@ -489,7 +496,7 @@ struct UsageView: View {
                     .kerning(1.1)
                     .foregroundStyle(Theme.textSecondary)
                 Spacer()
-                Text("Top \(min(10, max(topApps.count, 1))) · \(range.rawValue)")
+                Text("Top \(min(10, max(topApps.count, 1))) · \(range.wrappedValue.rawValue)")
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.textTertiary)
             }
