@@ -127,7 +127,11 @@ final class DatabaseTests: XCTestCase {
 
     func testCompactionPreservesTotalsAndNetworks() {
         let now = Date()
-        let old = now.addingTimeInterval(-10 * 86_400)
+        // Anchor to 02:00 local so the 99-minute spread below can't cross
+        // midnight — otherwise the fixture lands in 4 calendar days when the
+        // suite happens to run late in the evening.
+        let old = Calendar.current.startOfDay(for: now.addingTimeInterval(-10 * 86_400))
+            .addingTimeInterval(2 * 3600)
         // 300 old rows across 3 days and 2 network labels.
         for i in 0..<300 {
             let ts = old.addingTimeInterval(Double((i % 3) * 86_400 + (i / 3) * 60))
