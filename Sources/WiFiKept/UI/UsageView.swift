@@ -157,20 +157,28 @@ struct UsageView: View {
                 chart
                     .frame(height: 240)
             }
-            HStack {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    (Text(Fmt.bytes(rangeTotal.rx + rangeTotal.tx))
+                        .font(.display(14, .semibold))
+                        .foregroundColor(Theme.textPrimary)
+                     + Text("  total  ·  ↓ \(Fmt.bytes(rangeTotal.rx))   ↑ \(Fmt.bytes(rangeTotal.tx))")
+                        .font(.system(size: 12))
+                        .foregroundColor(Theme.textTertiary))
+                    Spacer()
+                    HStack(spacing: 14) {
+                        Label("Download", systemImage: "square.fill")
+                            .foregroundStyle(Theme.blue)
+                        Label("Upload", systemImage: "square.fill")
+                            .foregroundStyle(Theme.green)
+                    }
+                    .font(.system(size: 11))
+                }
                 if let since = totals.since {
                     Text("Tracking since \(since.formatted(date: .abbreviated, time: .omitted))")
-                        .font(.system(size: 12))
+                        .font(.system(size: 11))
                         .foregroundStyle(Theme.textTertiary)
                 }
-                Spacer()
-                HStack(spacing: 14) {
-                    Label("Download", systemImage: "square.fill")
-                        .foregroundStyle(Theme.blue)
-                    Label("Upload", systemImage: "square.fill")
-                        .foregroundStyle(Theme.green)
-                }
-                .font(.system(size: 11))
             }
         }
         .card(padding: 20)
@@ -252,6 +260,9 @@ struct UsageView: View {
                             Text("↓ \(Fmt.bytes(bucket.rx))   ↑ \(Fmt.bytes(bucket.tx))")
                                 .font(.system(size: 11))
                                 .foregroundStyle(Theme.textSecondary)
+                            Text("\(Fmt.bytes(bucket.rx + bucket.tx)) total")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(Theme.teal)
                         }
                         .padding(8)
                         .background(RoundedRectangle(cornerRadius: 8).fill(Theme.cardElevated))
@@ -283,6 +294,15 @@ struct UsageView: View {
 
     /// Pin the Y axis to the data so the hover tooltip doesn't rescale
     /// the chart when it appears.
+    /// Everything shown in the chart right now — the "last N days" figure,
+    /// which the calendar-based totals cards don't cover.
+    private var rangeTotal: (rx: Int64, tx: Int64) {
+        series.reduce(into: (rx: Int64(0), tx: Int64(0))) { acc, b in
+            acc.rx += b.rx
+            acc.tx += b.tx
+        }
+    }
+
     private var yMax: Double {
         let peak: Int64
         switch chartStyle {
